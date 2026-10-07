@@ -59,6 +59,7 @@ import '../services/fullscreen_state_manager.dart';
 import '../providers/companion_remote_provider.dart';
 import '../utils/desktop_window_padding.dart';
 import '../utils/live_tv_deep_link.dart';
+import '../utils/shuffle_show_deep_link.dart';
 import '../widgets/music/mini_player.dart';
 import '../widgets/navigation_label_fit.dart';
 import '../widgets/mobile_navigation_rail.dart';
@@ -931,6 +932,16 @@ class _MainScreenState extends State<MainScreen>
         await liveLink.launch(context, context.read<MultiServerProvider>());
       } catch (e) {
         appLogger.e('Live TV deep link failed', error: e);
+      }
+      return;
+    }
+
+    final shuffleLink = ShuffleShowDeepLink.tryParse(contentId);
+    if (shuffleLink != null) {
+      try {
+        await shuffleLink.launch(context, context.read<MultiServerProvider>());
+      } catch (e) {
+        appLogger.e('Shuffle deep link failed', error: e);
       }
       return;
     }
