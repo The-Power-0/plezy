@@ -1,0 +1,248 @@
+name: Build Custom Plezy Release
+
+run-name: Custom Plezy ${{ github.event.inputs.upstream_tag || 'latest upstream release' }}
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: "Upstream Plezy release tag; leave blank for latest"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: custom-plezy-release
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPO: edde746/plezy
+  FLUTTER_VERSION: "3.47.0"
+  CUSTOM_REVISION: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout custom branch
+        uses: actions/checkout@v4
+        with:
+          ref: ha-shuffle-v2
+          fetch-depth: 0
+
+      - name: Resolve upstream release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ github.event.inputs.upstream_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${REQUESTED_TAG:-}" ]]; then
+            UPSTREAM_TAG="$REQUESTED_TAG"
+            UPSTREAM_URL="https://github.com/${UPSTREAM_REPO}/releases/tag/${UPSTREAM_TAG}"
+          else
+            RELEASE_JSON="$(curl -fsSL "https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest")"
+            UPSTREAM_TAG="$(jq -r '.tag_name' <<< "$RELEASE_JSON")"
+            UPSTREAM_URL="$(jq -r '.html_url' <<< "$RELEASE_JSON")"
+          fi
+
+          CUSTOM_TAG="${UPSTREAM_TAG}-ha-shuffle.${CUSTOM_REVISION}"
+
+          echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+          echo "upstream_url=$UPSTREAM_URL" >> "$GITHUB_OUTPUT"
+          echo "custom_tag=$CUSTOM_TAG" >> "$GITHUB_OUTPUT"
+
+          if gh api \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${CUSTOM_TAG}" \
+            >/dev/null 2>&1; then
+            echo "build_needed=false" >> "$GITHUB_OUTPUT"
+            echo "Custom release ${CUSTOM_TAG} already exists."
+          else
+            echo "build_needed=true" >> "$GITHUB_OUTPUT"
+            echo "Building ${CUSTOM_TAG}."
+          fi
+
+      - name: Prepare upstream release source
+        if: steps.release.outputs.build_needed == 'true'
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp .github/patches/ha-shuffle.patch /tmp/ha-shuffle.patch
+
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/edde746/plezy.git
+
+          git fetch --force upstream \
+            "refs/tags/${{ steps.release.outputs.upstream_tag }}:refs/tags/_upstream_${{ steps.release.outputs.upstream_tag }}"
+
+          git checkout --detach \
+            "refs/tags/_upstream_${{ steps.release.outputs.upstream_tag }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git am /tmp/ha-shuffle.patch
+
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java
+        if: steps.release.outputs.build_needed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Flutter
+        if: steps.release.outputs.build_needed == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        if: steps.release.outputs.build_needed == 'true'
+        run: flutter pub get
+
+      - name: Restore signing key
+        if: steps.release.outputs.build_needed == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PLEZY_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${KEYSTORE_BASE64:-}" ]]; then
+            echo "PLEZY_KEYSTORE_BASE64 secret is missing." >&2
+            exit 1
+          fi
+
+          mkdir -p "$HOME/.android"
+
+          echo "$KEYSTORE_BASE64" | base64 --decode \
+            > "$HOME/.android/debug.keystore"
+
+          chmod 600 "$HOME/.android/debug.keystore"
+
+          keytool -list \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey
+
+      - name: Test shuffle deep link
+        if: steps.release.outputs.build_needed == 'true'
+        run: |
+          flutter test test/utils/shuffle_show_deep_link_test.dart
+          flutter analyze lib/utils/shuffle_show_deep_link.dart
+          flutter analyze lib/screens/main_screen.dart
+
+      - name: Verify upstream version
+        if: steps.release.outputs.build_needed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
+          BASE_VERSION="${VERSION%%+*}"
+          RELEASE_TAG="${{ steps.release.outputs.upstream_tag }}"
+          TAG_VERSION="${RELEASE_TAG#v}"
+
+          echo "pubspec version: $BASE_VERSION"
+          echo "upstream tag:    $RELEASE_TAG"
+
+          if [[ "$BASE_VERSION" != "$TAG_VERSION" ]]; then
+            echo "Upstream tag $RELEASE_TAG does not match pubspec version $BASE_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Build Fire TV APK
+        if: steps.release.outputs.build_needed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          flutter build apk \
+            --debug \
+            --split-per-abi
+
+          APK="build/app/outputs/flutter-apk/app-armeabi-v7a-debug.apk"
+
+          if [[ ! -f "$APK" ]]; then
+            echo "Expected Fire TV APK was not produced: $APK" >&2
+            exit 1
+          fi
+
+          cp "$APK" Plezy.apk
+
+          sha256sum Plezy.apk > Plezy.apk.sha256
+
+          echo "===== APK ====="
+          ls -lh Plezy.apk
+
+          echo
+          echo "===== SHA256 ====="
+          cat Plezy.apk.sha256
+
+      - name: Verify APK signature
+        if: steps.release.outputs.build_needed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+
+          "$BUILD_TOOLS/apksigner" verify \
+            --print-certs \
+            Plezy.apk
+
+      - name: Publish custom release
+        if: steps.release.outputs.build_needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CUSTOM_TAG: ${{ steps.release.outputs.custom_tag }}
+          UPSTREAM_TAG: ${{ steps.release.outputs.upstream_tag }}
+          UPSTREAM_URL: ${{ steps.release.outputs.upstream_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git tag -a "$CUSTOM_TAG" \
+            -m "Plezy $UPSTREAM_TAG + HA Shuffle"
+
+          git push origin "refs/tags/$CUSTOM_TAG"
+
+          cat > /tmp/release-notes.md <<EOF
+          Custom Plezy build based on upstream release **$UPSTREAM_TAG**.
+
+          Includes:
+          - \`plezy://shuffle?server=<serverId>&show=<showRatingKey>\`
+          - Plezy's native continuous shuffled-show playback
+          - Fire TV \`armeabi-v7a\` APK
+          - Signed with the same key used by existing custom Fire TV installations
+
+          Upstream release:
+          $UPSTREAM_URL
+          EOF
+
+          gh release create "$CUSTOM_TAG" \
+            Plezy.apk \
+            Plezy.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Plezy $UPSTREAM_TAG + HA Shuffle" \
+            --notes-file /tmp/release-notes.md
+
+      - name: Clean signing key
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$HOME/.android/debug.keystore"
