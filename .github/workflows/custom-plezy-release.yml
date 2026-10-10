@@ -5,6 +5,7 @@ run-name: Custom Plezy ${{ github.event.inputs.upstream_tag || 'latest upstream 
 on:
   schedule:
     - cron: "17 * * * *"
+
   workflow_dispatch:
     inputs:
       upstream_tag:
@@ -30,12 +31,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ═════════════════════════════════════
+      # CHECKOUT OUR CUSTOM BRANCH
+      # ═════════════════════════════════════
       - name: Checkout custom branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ha-shuffle-v2
           fetch-depth: 0
 
+      # ═════════════════════════════════════
+      # RESOLVE LATEST UPSTREAM RELEASE
+      # ═════════════════════════════════════
       - name: Resolve upstream release
         id: release
         env:
@@ -45,31 +52,99 @@ jobs:
         run: |
           set -euo pipefail
 
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Upstream:   $UPSTREAM_REPO"
+
           if [[ -n "${REQUESTED_TAG:-}" ]]; then
             UPSTREAM_TAG="$REQUESTED_TAG"
             UPSTREAM_URL="https://github.com/${UPSTREAM_REPO}/releases/tag/${UPSTREAM_TAG}"
+
+            echo "Manual upstream tag requested: $UPSTREAM_TAG"
+
           else
-            RELEASE_JSON="$(curl -fsSL "https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest")"
+            echo "Looking up latest upstream release..."
+
+            RELEASE_JSON="$(
+              gh api \
+                -H "Accept: application/vnd.github+json" \
+                "repos/${UPSTREAM_REPO}/releases/latest"
+            )"
+
             UPSTREAM_TAG="$(jq -r '.tag_name' <<< "$RELEASE_JSON")"
             UPSTREAM_URL="$(jq -r '.html_url' <<< "$RELEASE_JSON")"
+
+            if [[ -z "$UPSTREAM_TAG" || "$UPSTREAM_TAG" == "null" ]]; then
+              echo "GitHub returned no upstream release tag." >&2
+              exit 1
+            fi
           fi
 
           CUSTOM_TAG="${UPSTREAM_TAG}-ha-shuffle.${CUSTOM_REVISION}"
+
+          echo
+          echo "Upstream tag: $UPSTREAM_TAG"
+          echo "Custom tag:   $CUSTOM_TAG"
+          echo
 
           echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
           echo "upstream_url=$UPSTREAM_URL" >> "$GITHUB_OUTPUT"
           echo "custom_tag=$CUSTOM_TAG" >> "$GITHUB_OUTPUT"
 
-          if gh api \
-            "repos/${GITHUB_REPOSITORY}/releases/tags/${CUSTOM_TAG}" \
-            >/dev/null 2>&1; then
+          # Check whether our matching custom release already exists.
+          #
+          # 200 = already built
+          # 404 = needs building
+          # anything else = real API failure
+          HTTP_STATUS="$(
+            gh api \
+              --method GET \
+              -H "Accept: application/vnd.github+json" \
+              -i \
+              "repos/${GITHUB_REPOSITORY}/releases/tags/${CUSTOM_TAG}" \
+              2>/dev/null |
+            awk '/^HTTP\// {status=$2} END {print status}'
+          )" || true
+
+          if [[ "$HTTP_STATUS" == "200" ]]; then
             echo "build_needed=false" >> "$GITHUB_OUTPUT"
-            echo "Custom release ${CUSTOM_TAG} already exists."
-          else
+
+            echo
+            echo "Custom release already exists:"
+            echo "$CUSTOM_TAG"
+            echo
+            echo "Nothing to build."
+
+          elif [[ "$HTTP_STATUS" == "404" ]]; then
             echo "build_needed=true" >> "$GITHUB_OUTPUT"
-            echo "Building ${CUSTOM_TAG}."
+
+            echo
+            echo "No matching custom release exists."
+            echo "Building $CUSTOM_TAG."
+
+          else
+            echo "Unable to determine whether custom release exists." >&2
+            echo "GitHub API HTTP status: ${HTTP_STATUS:-unknown}" >&2
+            exit 1
           fi
 
+      # ═════════════════════════════════════
+      # CLEAN SUCCESSFUL EXIT WHEN CURRENT
+      # ═════════════════════════════════════
+      - name: Already up to date
+        if: steps.release.outputs.build_needed == 'false'
+        shell: bash
+        run: |
+          echo "Latest upstream release:"
+          echo "${{ steps.release.outputs.upstream_tag }}"
+          echo
+          echo "Matching custom release already exists:"
+          echo "${{ steps.release.outputs.custom_tag }}"
+          echo
+          echo "No build required."
+
+      # ═════════════════════════════════════
+      # PREPARE EXACT UPSTREAM RELEASE SOURCE
+      # ═════════════════════════════════════
       - name: Prepare upstream release source
         if: steps.release.outputs.build_needed == 'true'
         id: source
@@ -95,6 +170,9 @@ jobs:
 
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      # ═════════════════════════════════════
+      # JAVA
+      # ═════════════════════════════════════
       - name: Setup Java
         if: steps.release.outputs.build_needed == 'true'
         uses: actions/setup-java@v4
@@ -102,6 +180,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # ═════════════════════════════════════
+      # FLUTTER
+      # ═════════════════════════════════════
       - name: Setup Flutter
         if: steps.release.outputs.build_needed == 'true'
         uses: subosito/flutter-action@v2
@@ -110,10 +191,16 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      # ═════════════════════════════════════
+      # DEPENDENCIES
+      # ═════════════════════════════════════
       - name: Install dependencies
         if: steps.release.outputs.build_needed == 'true'
         run: flutter pub get
 
+      # ═════════════════════════════════════
+      # SIGNING KEY
+      # ═════════════════════════════════════
       - name: Restore signing key
         if: steps.release.outputs.build_needed == 'true'
         env:
@@ -129,7 +216,8 @@ jobs:
 
           mkdir -p "$HOME/.android"
 
-          echo "$KEYSTORE_BASE64" | base64 --decode \
+          echo "$KEYSTORE_BASE64" |
+            base64 --decode \
             > "$HOME/.android/debug.keystore"
 
           chmod 600 "$HOME/.android/debug.keystore"
@@ -139,6 +227,9 @@ jobs:
             -storepass android \
             -alias androiddebugkey
 
+      # ═════════════════════════════════════
+      # TEST CUSTOM PATCH
+      # ═════════════════════════════════════
       - name: Test shuffle deep link
         if: steps.release.outputs.build_needed == 'true'
         run: |
@@ -146,6 +237,9 @@ jobs:
           flutter analyze lib/utils/shuffle_show_deep_link.dart
           flutter analyze lib/screens/main_screen.dart
 
+      # ═════════════════════════════════════
+      # VERIFY UPSTREAM VERSION
+      # ═════════════════════════════════════
       - name: Verify upstream version
         if: steps.release.outputs.build_needed == 'true'
         shell: bash
@@ -154,6 +248,7 @@ jobs:
 
           VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
           BASE_VERSION="${VERSION%%+*}"
+
           RELEASE_TAG="${{ steps.release.outputs.upstream_tag }}"
           TAG_VERSION="${RELEASE_TAG#v}"
 
@@ -161,10 +256,15 @@ jobs:
           echo "upstream tag:    $RELEASE_TAG"
 
           if [[ "$BASE_VERSION" != "$TAG_VERSION" ]]; then
-            echo "Upstream tag $RELEASE_TAG does not match pubspec version $BASE_VERSION" >&2
+            echo \
+              "Upstream tag $RELEASE_TAG does not match pubspec version $BASE_VERSION" \
+              >&2
             exit 1
           fi
 
+      # ═════════════════════════════════════
+      # BUILD FIRE TV APK
+      # ═════════════════════════════════════
       - name: Build Fire TV APK
         if: steps.release.outputs.build_needed == 'true'
         shell: bash
@@ -178,7 +278,8 @@ jobs:
           APK="build/app/outputs/flutter-apk/app-armeabi-v7a-debug.apk"
 
           if [[ ! -f "$APK" ]]; then
-            echo "Expected Fire TV APK was not produced: $APK" >&2
+            echo "Expected Fire TV APK was not produced:" >&2
+            echo "$APK" >&2
             exit 1
           fi
 
@@ -193,18 +294,31 @@ jobs:
           echo "===== SHA256 ====="
           cat Plezy.apk.sha256
 
+      # ═════════════════════════════════════
+      # VERIFY SIGNATURE
+      # ═════════════════════════════════════
       - name: Verify APK signature
         if: steps.release.outputs.build_needed == 'true'
         shell: bash
         run: |
           set -euo pipefail
 
-          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          BUILD_TOOLS="$(
+            find "$ANDROID_HOME/build-tools" \
+              -mindepth 1 \
+              -maxdepth 1 \
+              -type d |
+            sort -V |
+            tail -1
+          )"
 
           "$BUILD_TOOLS/apksigner" verify \
             --print-certs \
             Plezy.apk
 
+      # ═════════════════════════════════════
+      # PUBLISH CUSTOM RELEASE
+      # ═════════════════════════════════════
       - name: Publish custom release
         if: steps.release.outputs.build_needed == 'true'
         env:
@@ -241,6 +355,9 @@ jobs:
             --title "Plezy $UPSTREAM_TAG + HA Shuffle" \
             --notes-file /tmp/release-notes.md
 
+      # ═════════════════════════════════════
+      # CLEAN SIGNING KEY
+      # ═════════════════════════════════════
       - name: Clean signing key
         if: always()
         shell: bash
