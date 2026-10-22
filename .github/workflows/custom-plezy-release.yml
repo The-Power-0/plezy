@@ -1,3 +1,4 @@
+
 name: Build Custom Plezy Release
 
 run-name: Custom Plezy ${{ github.event.inputs.upstream_tag || 'latest upstream release' }}
@@ -318,6 +319,10 @@ jobs:
 
       # ═════════════════════════════════════
       # PUBLISH CUSTOM RELEASE
+      #
+      # FIX:
+      # Let GitHub create the release tag.
+      # Do not push the temporary patched source commit.
       # ═════════════════════════════════════
       - name: Publish custom release
         if: steps.release.outputs.build_needed == 'true'
@@ -326,15 +331,21 @@ jobs:
           CUSTOM_TAG: ${{ steps.release.outputs.custom_tag }}
           UPSTREAM_TAG: ${{ steps.release.outputs.upstream_tag }}
           UPSTREAM_URL: ${{ steps.release.outputs.upstream_url }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
         shell: bash
         run: |
           set -euo pipefail
 
-          git tag -a "$CUSTOM_TAG" \
-            -m "Plezy $UPSTREAM_TAG + HA Shuffle"
+          # Verify release assets before publishing.
+          test -s Plezy.apk
+          test -s Plezy.apk.sha256
 
-          git push origin "refs/tags/$CUSTOM_TAG"
+          echo "Publishing custom Plezy release..."
+          echo "Upstream: $UPSTREAM_TAG"
+          echo "Custom:   $CUSTOM_TAG"
+          echo "Source:   $SOURCE_COMMIT"
 
+          # Write release notes.
           cat > /tmp/release-notes.md <<EOF
           Custom Plezy build based on upstream release **$UPSTREAM_TAG**.
 
@@ -346,14 +357,46 @@ jobs:
 
           Upstream release:
           $UPSTREAM_URL
+
+          Patched build source commit:
+          \`$SOURCE_COMMIT\`
+
+          Build and test workflow:
+          https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
 
+          # Create the release and tag directly through GitHub.
+          # The tag targets our maintained branch rather than
+          # the temporary patched upstream commit.
+          #
+          # This avoids workflow-file permission errors.
           gh release create "$CUSTOM_TAG" \
             Plezy.apk \
             Plezy.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
+            --target ha-shuffle-v2 \
+            --latest \
             --title "Plezy $UPSTREAM_TAG + HA Shuffle" \
             --notes-file /tmp/release-notes.md
+
+          echo
+          echo "Release published successfully:"
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${CUSTOM_TAG}"
+
+          # Confirm the release is published and both assets exist.
+          RELEASE_JSON="$(
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/releases/tags/${CUSTOM_TAG}"
+          )"
+
+          echo "$RELEASE_JSON" | jq -e '
+            .draft == false and
+            ([.assets[].name] |
+              index("Plezy.apk") != null and
+              index("Plezy.apk.sha256") != null)
+          '
+
+          echo "Release and assets verified."
 
       # ═════════════════════════════════════
       # CLEAN SIGNING KEY
