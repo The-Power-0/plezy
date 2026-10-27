@@ -11,8 +11,15 @@ source = path.read_text(encoding="utf-8")
 anchor = "      PlayLink.host => PlayLink._parse(params, profile),"
 if source.count(anchor) != 1:
     raise SystemExit("Upstream deep-link parser changed; review compatibility shim before releasing")
-if "      'shuffle' =>" in source:
-    raise SystemExit("Upstream already supports the shuffle host; review the compatibility shim")
+# Only inspect the URI-HOST switch, not other switches in this file.
+# Plezy 2.25 has a separate 'shuffle' => PlayMode.shuffle case; that
+# is expected and is *not* support for plezy://shuffle URLs.
+host_switch = "return switch (uri.host.toLowerCase()) {"
+if source.count(host_switch) != 1:
+    raise SystemExit("Upstream host parser changed; review the compatibility shim")
+host_cases = source.split(host_switch, 1)[1].split("\n    };", 1)[0]
+if "'shuffle' =>" in host_cases:
+    raise SystemExit("Upstream already supports the legacy shuffle host; review the compatibility shim")
 
 bridge = """      // Preserve older Home Assistant plezy://shuffle links without
       // duplicating upstream's playback or server reconnect logic.
