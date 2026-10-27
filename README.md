@@ -296,3 +296,12 @@ Plezy is licensed under [GPL-3.0](LICENSE).
 - Built with [Flutter](https://flutter.dev)
 - Supports [Plex Media Server](https://www.plex.tv), [Jellyfin](https://jellyfin.org), and [Emby](https://emby.media)
 - Playback powered by [mpv](https://mpv.io) via our [mpv-build](https://github.com/edde746/mpv-build) pipeline (started as a fork of [MPVKit](https://github.com/mpvkit/MPVKit); the Android Kotlin/JNI glue descends from [libmpv-android](https://github.com/jarnedemeulemeester/libmpv-android)), Android [ExoPlayer](https://developer.android.com/media/media3/exoplayer), and [libass-android](https://github.com/peerless2012/libass-android)
+
+
+## Unofficial Home Assistant / Fire TV fork
+
+This repository publishes unofficial, GPL-3.0-licensed Plezy builds for Home Assistant. The original Plezy project and its maintainers are at https://github.com/edde746/plezy. The fork is not endorsed by the original maintainers.
+
+The legacy automation URL `plezy://shuffle?server=<serverId>&show=<showRatingKey>` is preserved. Starting with upstream Plezy 2.25, it delegates to Plezy's built-in `plezy://play?server=<serverId>&id=<showId>&mode=shuffle` behavior. Existing Home Assistant commands do not need changing.
+
+See [HA-SHUFFLE-NOTICE.md](HA-SHUFFLE-NOTICE.md) and the original [GPL-3.0 license](LICENSE). Each newly published custom APK release attaches `Plezy-Source.tar.gz` containing the exact modified source checkout and rebuild instructions. GitHub's automatically generated source archives target the automation branch and should not be substituted for that attachment.
