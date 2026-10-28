@@ -135,7 +135,8 @@ edit(
 edit(
     "lib/profiles/active_profile_binder.dart",
     "          if (connectionsById[pc.connectionId] case JellyfinConnection(:final id)) id,",
-    "          if (!kFireTvPlexOnly && connectionsById[pc.connectionId] case JellyfinConnection(:final id)) id,",
+    "          if (!kFireTvPlexOnly)\n"
+    "            if (connectionsById[pc.connectionId] case JellyfinConnection(:final id)) id,",
 )
 
 test = Path("test/services/firetv_build_flags_test.dart")
