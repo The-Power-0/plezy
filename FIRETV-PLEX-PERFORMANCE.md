@@ -22,6 +22,12 @@ The standalone `Fire TV Plex-Only Optimized APK Test` workflow makes a fully AOT
 
 This should remove irrelevant work and simplify sign-in. **It is not yet proven to speed up startup or playback.** Size reduction from debug → release was previously verified; any additional size/time benefit here must be measured.
 
+## Automated source-line audit
+
+`scripts/audit_firetv_source.py` scans **every readable line of tracked application source** under `lib/`, `android/`, `packages/`, and `windows/` in the exact upstream checkout. It inventories periodic timers, frame callbacks, rebuild notifications, expensive visual-effects markers, network/JSON operations, and remaining Jellyfin/Emby references. It reports top-ranked source files and example lines in `Plezy-FireTV-PlexOnly-SourceAudit.txt`, bundled in the Actions artifact. Generated Dart is counted but excluded from hotspot rankings.
+
+**Limitations:** Pattern searches do not establish real runtime cost, and counting lines is not a semantic code review. We will only change additional hot paths after measured Fire TV timings support them.
+
 ## Why not delete all Jellyfin source folders?
 
 Plezy shares profile, server, UI, playback, database, and library interfaces between Plex and Jellyfin. Physically deleting Jellyfin implementations without untangling cross-references can break compilation, onboarding, persisted settings, and Plex queues. Flutter's AOT tree shaker can drop unreferenced code when build flags are compile-time constants. Any later deeper backend removal should follow a dependency-graph and test-driven migration, not a blanket directory deletion.
