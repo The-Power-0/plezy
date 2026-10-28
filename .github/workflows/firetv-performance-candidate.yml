@@ -177,20 +177,70 @@ jobs:
           APKSIGNER="$BUILD_TOOLS/apksigner"
           "$APKSIGNER" verify --min-sdk-version 28 --print-certs Plezy-FireTV-ReleaseCandidate.apk > "$RUNNER_TEMP/new-cert.txt"
           "$APKSIGNER" verify --min-sdk-version 30 Plezy-FireTV-ReleaseCandidate.apk
-          NEW_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/new-cert.txt" | head -1)"
-          test -n "$NEW_CERT"
           TAG="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
           mkdir -p "$RUNNER_TEMP/baseline"
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern Plezy.apk --dir "$RUNNER_TEMP/baseline"
           BASELINE="$RUNNER_TEMP/baseline/Plezy.apk"
           test -s "$BASELINE"
           "$APKSIGNER" verify --min-sdk-version 28 --print-certs "$BASELINE" > "$RUNNER_TEMP/old-cert.txt"
-          OLD_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/old-cert.txt" | head -1)"
-          test -n "$OLD_CERT"
+
+          # SDK Build Tools 37+ may label signing certificates "V2 Signer"
+          # or "V3.0 Signer" rather than the older "Signer #1" prefix.
+          # Match the certificate digest itself, not the prefix, and reject
+          # ambiguous/multi-key signing instead of silently accepting a mismatch.
+          NEW_CERT="$(
+            python3 - "$RUNNER_TEMP/new-cert.txt" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          raw = Path(sys.argv[1]).read_text(encoding="utf-8")
+          digests = {
+              x.lower()
+              for x in re.findall(
+                  r"(?im)^[^\r\n]*\bcertificate SHA-256 digest:\s*([0-9a-f]{64})\s*$",
+                  raw,
+              )
+          }
+          if len(digests) != 1:
+              print(
+                  f"Expected exactly one unique signing certificate SHA-256 digest, found {len(digests)}. "
+                  "Review apksigner --print-certs output / signing schemes.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          print(next(iter(digests)))
+          PY
+          )"
+          OLD_CERT="$(
+            python3 - "$RUNNER_TEMP/old-cert.txt" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          raw = Path(sys.argv[1]).read_text(encoding="utf-8")
+          digests = {
+              x.lower()
+              for x in re.findall(
+                  r"(?im)^[^\r\n]*\bcertificate SHA-256 digest:\s*([0-9a-f]{64})\s*$",
+                  raw,
+              )
+          }
+          if len(digests) != 1:
+              print(
+                  f"Expected exactly one unique signing certificate SHA-256 digest, found {len(digests)}. "
+                  "Review apksigner --print-certs output / signing schemes.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          print(next(iter(digests)))
+          PY
+          )"
           if [[ "$NEW_CERT" != "$OLD_CERT" ]]; then
-            echo "Signing certificate mismatch. Abort." >&2
+            echo "Signing certificate mismatch with published $TAG. Refusing candidate artifact." >&2
             exit 1
           fi
+          echo "Verified candidate and published APK share the same signing certificate."
           echo "baseline_tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "baseline_bytes=$(stat -c %s "$BASELINE")" >> "$GITHUB_OUTPUT"
           echo "candidate_bytes=$(stat -c %s Plezy-FireTV-ReleaseCandidate.apk)" >> "$GITHUB_OUTPUT"
