@@ -156,4 +156,20 @@ void main() {
 """,
     encoding="utf-8",
 )
-print("Prepared Plex-only source overlay and compile-time mode regression test")
+default_test = Path("test/services/firetv_build_flags_default_test.dart")
+if default_test.exists():
+    raise SystemExit("Upstream has default build flag test; review before replacing")
+default_test.write_text(
+    """import 'package:flutter_test/flutter_test.dart';
+import 'package:plezy/services/firetv_build_flags.dart';
+
+void main() {
+  test('ordinary upstream and future Windows builds retain full support', () {
+    expect(kFireTvPlexOnly, isFalse);
+    expect(kHomeAssistantManagedUpdates, isFalse);
+  });
+}
+""",
+    encoding="utf-8",
+)
+print("Prepared Plex-only source overlay and both flag mode regression tests")
