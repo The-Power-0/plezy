@@ -77,7 +77,8 @@ jobs:
           cp "$RUNNER_TEMP/audit_firetv_source.py" scripts/audit_firetv_source.py
           git add scripts/audit_firetv_source.py lib/main.dart lib/screens/auth_screen.dart lib/screens/main_screen.dart \
             lib/screens/settings/add_connection_screen.dart lib/profiles/active_profile_binder.dart \
-            lib/services/firetv_build_flags.dart test/services/firetv_build_flags_test.dart
+            lib/services/firetv_build_flags.dart test/services/firetv_build_flags_test.dart \
+            test/services/firetv_build_flags_default_test.dart
           git diff --cached --check
           git commit -m "perf: Plex-only Home Assistant Fire TV code paths"
           python3 - <<'PY'
@@ -131,6 +132,7 @@ jobs:
           set -euo pipefail
           flutter pub get
           python3 scripts/audit_firetv_source.py --output Plezy-FireTV-PlexOnly-SourceAudit.txt
+          flutter test test/services/firetv_build_flags_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
           flutter analyze lib/main.dart lib/screens/main_screen.dart lib/screens/auth_screen.dart \
             lib/screens/settings/add_connection_screen.dart lib/profiles/active_profile_binder.dart \
