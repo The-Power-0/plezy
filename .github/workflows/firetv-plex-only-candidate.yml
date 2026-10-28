@@ -60,6 +60,8 @@ jobs:
           set -euo pipefail
           cp HA-SHUFFLE-NOTICE.md "$RUNNER_TEMP/HA-SHUFFLE-NOTICE.md"
           cp .github/patches/apply_firetv_plex_only.py "$RUNNER_TEMP/apply_firetv_plex_only.py"
+          cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/audit_firetv_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_plex_only.py"
           cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
           cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
@@ -71,7 +73,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           bash "$RUNNER_TEMP/prepare_custom_source.sh" "$UPSTREAM_TAG"
           python3 "$RUNNER_TEMP/apply_firetv_plex_only.py"
-          git add lib/main.dart lib/screens/auth_screen.dart lib/screens/main_screen.dart \
+          test ! -e scripts/audit_firetv_source.py
+          cp "$RUNNER_TEMP/audit_firetv_source.py" scripts/audit_firetv_source.py
+          git add scripts/audit_firetv_source.py lib/main.dart lib/screens/auth_screen.dart lib/screens/main_screen.dart \
             lib/screens/settings/add_connection_screen.dart lib/profiles/active_profile_binder.dart \
             lib/services/firetv_build_flags.dart test/services/firetv_build_flags_test.dart
           git diff --cached --check
@@ -126,6 +130,7 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
+          python3 scripts/audit_firetv_source.py --output Plezy-FireTV-PlexOnly-SourceAudit.txt
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
           flutter analyze lib/main.dart lib/screens/main_screen.dart lib/screens/auth_screen.dart \
             lib/screens/settings/add_connection_screen.dart lib/profiles/active_profile_binder.dart \
@@ -309,6 +314,7 @@ jobs:
             echo "| Signatures | Android 9 and 11 verified, certificate matches existing APK |"
             echo "| GPL source | Uploaded alongside candidate |"
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "A full scanned-source heuristic report is included in the artifact." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload testing artifacts, not a release
         uses: actions/upload-artifact@v4
@@ -320,6 +326,7 @@ jobs:
             Plezy-FireTV-PlexOnly-ReleaseCandidate-Source.tar.gz
             Plezy-FireTV-PlexOnly-ReleaseCandidate-Source.tar.gz.sha256
             Plezy-FireTV-PlexOnly-ReleaseCandidate-build-info.txt
+            Plezy-FireTV-PlexOnly-SourceAudit.txt
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
