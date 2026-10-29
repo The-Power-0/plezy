@@ -143,6 +143,17 @@ change(provider,
        "  Stream<List<DiscoveredHost>>? discoverHosts() {\n"
        "    if (kFireTvNoCompanionRemote) return null;\n")
 
+# Reject direct pairing entrypoints even if future code constructs this
+# provider in an isolated test or outside the scoped profile.
+change(provider,
+       "  Future<void> connectToDiscoveredHost(DiscoveredHost host) async {\n",
+       "  Future<void> connectToDiscoveredHost(DiscoveredHost host) async {\n"
+       "    if (kFireTvNoCompanionRemote) return;\n")
+change(provider,
+       "  Future<void> connectToManualHost(String hostAddress) async {\n",
+       "  Future<void> connectToManualHost(String hostAddress) async {\n"
+       "    if (kFireTvNoCompanionRemote) return;\n")
+
 for name, data in {
     "test/services/firetv_no_remote_test.dart": (
         "import 'package:flutter_test/flutter_test.dart';\n"
