@@ -71,6 +71,8 @@ jobs:
           cp .github/patches/check_firetv_no_watch_together_source.py "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
           cp .github/patches/apply_firetv_no_plezy_remote.py "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
           cp .github/patches/check_firetv_no_plezy_remote_source.py "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
+          cp .github/patches/apply_firetv_library_index.py "$RUNNER_TEMP/apply_firetv_library_index.py"
+          cp .github/patches/check_firetv_library_index.py "$RUNNER_TEMP/check_firetv_library_index.py"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
           cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
@@ -87,6 +89,8 @@ jobs:
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_library_index.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_library_index.py"
           cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
           cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
           cp .github/patches/ha-shuffle.patch "$RUNNER_TEMP/ha-shuffle.patch"
@@ -122,6 +126,10 @@ jobs:
           cp "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py" scripts/check_firetv_no_plezy_remote_source.py
           python3 scripts/apply_firetv_no_plezy_remote.py
           python3 scripts/check_firetv_no_plezy_remote_source.py
+          cp "$RUNNER_TEMP/apply_firetv_library_index.py" scripts/apply_firetv_library_index.py
+          cp "$RUNNER_TEMP/check_firetv_library_index.py" scripts/check_firetv_library_index.py
+          python3 scripts/apply_firetv_library_index.py
+          python3 scripts/check_firetv_library_index.py
           if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
             echo "ERROR: Kotlin source still imports a removed MPV player" >&2
             exit 1
@@ -222,7 +230,8 @@ jobs:
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_exoplayer_video_flag_test.dart
           flutter test test/services/firetv_build_flags_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
-          flutter analyze lib/screens/discover_screen.dart lib/watch_together/providers/watch_together_provider.dart \
+          flutter analyze lib/screens/libraries/tabs/library_browse_tab.dart \
+            lib/screens/discover_screen.dart lib/watch_together/providers/watch_together_provider.dart \
             lib/watch_together/widgets/watch_notice_listener.dart lib/widgets/video_controls/video_controls.dart \
             lib/widgets/video_controls/widgets/video_controls_header.dart lib/widgets/video_controls/sheets/video_settings_sheet.dart \
             lib/screens/video_player/parts/watch_together.dart lib/screens/video_player/parts/build.dart \
