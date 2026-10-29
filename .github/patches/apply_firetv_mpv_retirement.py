@@ -211,6 +211,21 @@ end = core_text.index("  // Cleanup\n", start)
 if core_text.count("  fun triggerFallback() {\n") != 1:
     raise SystemExit("Unexpected ExoPlayerCore fallback trigger layout")
 Path(core).write_text(core_text[:start] + core_text[end:], encoding="utf-8")
+# Report existing decoder/format failures accurately now that there is no
+# second player engine. Keep bounded in-place Media3 recovery and error codes.
+replace_one(
+    core,
+    'Log.w(TAG, "ExoPlayer error (code ${error.errorCode}) - attempting fallback to MPV")',
+    'Log.w(TAG, "ExoPlayer error (code ${error.errorCode}) - reporting failure after Media3 recovery")',
+)
+replace_one(
+    core,
+    "    // In-place recovery is spent. Hand over to the MPV backend, which has its own audio path,\n"
+    "    // rather than leaving the user on a spinner.",
+    "    // In-place recovery is spent. Report failure through the standard Dart\n"
+    "    // error path rather than leaving the user on a spinner.",
+)
+
 
 # Stage B selection remains true and *only* video is supported on this target.
 # If a source refactor removes this guard in a later upstream version, fail.
