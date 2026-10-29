@@ -18,8 +18,13 @@ The non-publishing candidate workflow `firetv-no-mpv-candidate.yml` applies, in 
 2. `apply_firetv_plex_only.py` (disables non-Plex browsing and updates).
 3. `apply_firetv_exoplayer_video.py` (video creation and configuration forced to Media3).
 4. `apply_firetv_mpv_retirement.py` (the native MPV player sources and registrations are removed, `ExoPlayerPlugin.kt` is replaced, music audio-only playback is disabled, MPV fallback event handling and extra properties are removed).
+5. `check_firetv_no_mpv_source.py` validates native imports, ExoPlayer error routing, retained FFmpeg inputs, and compile-time flags before any build.
 
-The replacement native bridge is maintained in `.github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt`, and copied into the exact upstream source checkout before compilation. The exact modified GPL source is archived with the test APK. All changes are isolated from the normal upstream and future Windows builds.
+The replacement native bridge is maintained in `.github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt`, and copied into the exact upstream source checkout before compilation.
+
+The custom APK additionally defines `PLEZY_FIRETV_MOVIES_TV_ONLY=true`. `LibrariesProvider` filters Plex artist/album/track libraries before indexing and sorting, the floating music player is not rendered, and the context menu cannot offer MPV-backed music actions. The existing music service provider remains lazy because the movie/TV playback controller still consults its session ownership. Standard and future Windows builds keep their normal music behavior.
+
+The MPV-only OSD SurfaceView helper, GLES probe, debug/instrumentation source sets, and obsolete MPV unit tests are removed. Media3 video rendering and subtitle overlays remain in the shared Android code. The exact modified GPL source is archived with the test APK. All changes are isolated from the normal upstream and future Windows builds.
 
 ## FFmpeg is retained, MPV isn't
 
@@ -37,7 +42,7 @@ The native method channel still accepts a method named `setMpvProperty` as a com
 
 ## Required checks before release
 
-- Apply all source overlays against **exact** upstream Plezy 2.25.0. If any anchor fails, stop instead of silently releasing an incompatible APK.
+- Apply all source overlays against **exact** upstream Plezy 2.25.0, then run the fail-closed source audit before compilation. If any anchor fails, stop instead of silently releasing an incompatible APK.
 - Compile Flutter release AOT for ARMv7 and Android native Media3, including optimized R8/proguard output.
 - Run all existing Home Assistant shuffle tests and Plex profile/deep-link tests.
 - Check binary ZIP + DEX for embedded MPV runtime / player classes, verify FFmpeg decoder and retained libass/libdovi libraries as appropriate.
