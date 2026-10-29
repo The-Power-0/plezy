@@ -135,7 +135,7 @@ replace_one(
     player,
     "  factory Player.audio() {\n",
     "  factory Player.audio() {\n"
-    "    if (Platform.isAndroid && kFireTvForceExoVideo) {\n"
+    "    if (Platform.isAndroid && kFireTvMoviesTvOnly) {\n"
     "      throw UnsupportedError('Music playback is not included in this Fire TV movies-and-TV edition');\n"
     "    }\n",
 )
@@ -208,6 +208,38 @@ replace_one(
     "    // strand TrueHD/DTS-HD on sinks that cannot bitstream them (#1703).\n",
     "",
 )
+
+# Enforce compile-time mode in a small Dart test independent of platform
+# channel availability. Normal non-appliance builds must remain unaffected.
+flag_tests = {
+    "test/services/firetv_movies_tv_only_test.dart": (
+        "import 'package:flutter_test/flutter_test.dart';\n"
+        "import 'package:plezy/services/firetv_build_flags.dart';\n\n"
+        "void main() {\n"
+        "  test('movies/TV appliance has no music engine', () {\n"
+        "    expect(kFireTvPlexOnly, isTrue);\n"
+        "    expect(kFireTvForceExoVideo, isTrue);\n"
+        "    expect(kFireTvMoviesTvOnly, isTrue);\n"
+        "    expect(useExoPlayerForAndroidVideo(false), isTrue);\n"
+        "  });\n"
+        "}\n"
+    ),
+    "test/services/firetv_movies_tv_default_test.dart": (
+        "import 'package:flutter_test/flutter_test.dart';\n"
+        "import 'package:plezy/services/firetv_build_flags.dart';\n\n"
+        "void main() {\n"
+        "  test('ordinary builds keep music support visible', () {\n"
+        "    expect(kFireTvMoviesTvOnly, isFalse);\n"
+        "  });\n"
+        "}\n"
+    ),
+}
+for file_name, data in flag_tests.items():
+    target = Path(file_name)
+    if target.exists():
+        raise SystemExit(f"Flag test already exists: {file_name}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(data, encoding="utf-8")
 
 # With only Media3 video, a native player factory can no longer ever choose
 # MPV. Remove Kotlin MPV implementation sources in this *candidate checkout*,
