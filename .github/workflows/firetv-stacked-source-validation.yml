@@ -1,0 +1,252 @@
+name: Fire TV stacked source integration validation
+run-name: Validate unmerged Plezy optimization source overlays
+
+# Dedicated experimental branch. No APK compilation, signing, releases, or deployment.
+on:
+  push:
+    branches:
+      - 'perf/firetv-validation-v1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firetv-stacked-source-validation
+  cancel-in-progress: true
+
+jobs:
+  validate-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact validation branch SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify validation branch and staging scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -f .github/patches/apply_firetv_dependency_cleanup.py
+          test -f .github/patches/apply_firetv_mpv_retirement.py
+          test -f .github/patches/prepare_custom_source.sh
+          echo 'Source validation only; no APK build or publication.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare upstream source with existing HA shuffle compatibility
+        id: source
+        env:
+          UPSTREAM_TAG: '2.25.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp HA-SHUFFLE-NOTICE.md "$RUNNER_TEMP/HA-SHUFFLE-NOTICE.md"
+          cp .github/patches/apply_firetv_plex_only.py "$RUNNER_TEMP/apply_firetv_plex_only.py"
+          cp .github/patches/apply_firetv_exoplayer_video.py "$RUNNER_TEMP/apply_firetv_exoplayer_video.py"
+          cp .github/patches/apply_firetv_mpv_retirement.py "$RUNNER_TEMP/apply_firetv_mpv_retirement.py"
+          cp .github/patches/check_firetv_no_mpv_source.py "$RUNNER_TEMP/check_firetv_no_mpv_source.py"
+          cp .github/patches/apply_firetv_external_services_pruning.py "$RUNNER_TEMP/apply_firetv_external_services_pruning.py"
+          cp .github/patches/check_firetv_external_services_source.py "$RUNNER_TEMP/check_firetv_external_services_source.py"
+          cp .github/patches/apply_firetv_remove_discord.py "$RUNNER_TEMP/apply_firetv_remove_discord.py"
+          cp .github/patches/check_firetv_no_discord_source.py "$RUNNER_TEMP/check_firetv_no_discord_source.py"
+          cp .github/patches/apply_firetv_remove_watch_together.py "$RUNNER_TEMP/apply_firetv_remove_watch_together.py"
+          cp .github/patches/check_firetv_no_watch_together_source.py "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
+          cp .github/patches/apply_firetv_no_plezy_remote.py "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
+          cp .github/patches/check_firetv_no_plezy_remote_source.py "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
+          cp .github/patches/apply_firetv_library_index.py "$RUNNER_TEMP/apply_firetv_library_index.py"
+          cp .github/patches/check_firetv_library_index.py "$RUNNER_TEMP/check_firetv_library_index.py"
+          cp .github/patches/apply_firetv_startup_priority.py "$RUNNER_TEMP/apply_firetv_startup_priority.py"
+          cp .github/patches/check_firetv_startup_priority.py "$RUNNER_TEMP/check_firetv_startup_priority.py"
+          cp .github/patches/apply_firetv_focus_index.py "$RUNNER_TEMP/apply_firetv_focus_index.py"
+          cp .github/patches/check_firetv_focus_index.py "$RUNNER_TEMP/check_firetv_focus_index.py"
+          cp .github/patches/apply_firetv_no_music_restore.py "$RUNNER_TEMP/apply_firetv_no_music_restore.py"
+          cp .github/patches/check_firetv_no_music_restore.py "$RUNNER_TEMP/check_firetv_no_music_restore.py"
+          cp .github/patches/apply_firetv_artwork_priority.py "$RUNNER_TEMP/apply_firetv_artwork_priority.py"
+          cp .github/patches/check_firetv_artwork_priority.py "$RUNNER_TEMP/check_firetv_artwork_priority.py"
+          cp .github/patches/apply_firetv_plex_request_coalescing.py "$RUNNER_TEMP/apply_firetv_plex_request_coalescing.py"
+          cp .github/patches/check_firetv_plex_request_coalescing.py "$RUNNER_TEMP/check_firetv_plex_request_coalescing.py"
+          cp .github/patches/apply_firetv_media3_volume.py "$RUNNER_TEMP/apply_firetv_media3_volume.py"
+          cp .github/patches/check_firetv_media3_volume.py "$RUNNER_TEMP/check_firetv_media3_volume.py"
+          cp .github/patches/apply_firetv_memory_budget.py "$RUNNER_TEMP/apply_firetv_memory_budget.py"
+          cp .github/patches/check_firetv_memory_budget.py "$RUNNER_TEMP/check_firetv_memory_budget.py"
+          cp .github/patches/apply_firetv_dependency_cleanup.py "$RUNNER_TEMP/apply_firetv_dependency_cleanup.py"
+          cp .github/patches/check_firetv_dependency_cleanup.py "$RUNNER_TEMP/check_firetv_dependency_cleanup.py"
+          cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
+          cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
+          cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/audit_firetv_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_plex_only.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_exoplayer_video.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_mpv_retirement.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_mpv_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_external_services_pruning.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_external_services_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_remove_discord.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_discord_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_remove_watch_together.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_library_index.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_library_index.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_startup_priority.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_startup_priority.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_focus_index.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_focus_index.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_no_music_restore.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_music_restore.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_artwork_priority.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_artwork_priority.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_plex_request_coalescing.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_plex_request_coalescing.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_media3_volume.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_media3_volume.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_memory_budget.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_memory_budget.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_dependency_cleanup.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_dependency_cleanup.py"
+          cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
+          cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
+          cp .github/patches/ha-shuffle.patch "$RUNNER_TEMP/ha-shuffle.patch"
+          git remote add upstream-release https://github.com/edde746/plezy.git
+          git fetch --force upstream-release "refs/tags/$UPSTREAM_TAG:refs/tags/_candidate_$UPSTREAM_TAG"
+          git checkout --detach "refs/tags/_candidate_$UPSTREAM_TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash "$RUNNER_TEMP/prepare_custom_source.sh" "$UPSTREAM_TAG"
+          python3 "$RUNNER_TEMP/apply_firetv_plex_only.py"
+          python3 "$RUNNER_TEMP/apply_firetv_exoplayer_video.py"
+          cp "$RUNNER_TEMP/apply_firetv_exoplayer_video.py" scripts/apply_firetv_exoplayer_video.py
+          mkdir -p scripts/firetv_exoplayer_only_plugin
+          cp "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt" scripts/firetv_exoplayer_only_plugin/ExoPlayerPlugin.kt
+          cp "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt" scripts/firetv_exoplayer_only_plugin/ExoPlayerOnlyPluginTest.kt
+          cp "$RUNNER_TEMP/apply_firetv_mpv_retirement.py" scripts/apply_firetv_mpv_retirement.py
+          cp "$RUNNER_TEMP/check_firetv_no_mpv_source.py" scripts/check_firetv_no_mpv_source.py
+          python3 scripts/apply_firetv_mpv_retirement.py
+          python3 scripts/check_firetv_no_mpv_source.py
+          cp "$RUNNER_TEMP/apply_firetv_external_services_pruning.py" scripts/apply_firetv_external_services_pruning.py
+          python3 scripts/apply_firetv_external_services_pruning.py
+          cp "$RUNNER_TEMP/check_firetv_external_services_source.py" scripts/check_firetv_external_services_source.py
+          python3 scripts/check_firetv_external_services_source.py
+          cp "$RUNNER_TEMP/apply_firetv_remove_discord.py" scripts/apply_firetv_remove_discord.py
+          cp "$RUNNER_TEMP/check_firetv_no_discord_source.py" scripts/check_firetv_no_discord_source.py
+          python3 scripts/apply_firetv_remove_discord.py
+          python3 scripts/check_firetv_no_discord_source.py
+          cp "$RUNNER_TEMP/apply_firetv_remove_watch_together.py" scripts/apply_firetv_remove_watch_together.py
+          cp "$RUNNER_TEMP/check_firetv_no_watch_together_source.py" scripts/check_firetv_no_watch_together_source.py
+          python3 scripts/apply_firetv_remove_watch_together.py
+          python3 scripts/check_firetv_no_watch_together_source.py
+          cp "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py" scripts/apply_firetv_no_plezy_remote.py
+          cp "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py" scripts/check_firetv_no_plezy_remote_source.py
+          python3 scripts/apply_firetv_no_plezy_remote.py
+          python3 scripts/check_firetv_no_plezy_remote_source.py
+          cp "$RUNNER_TEMP/apply_firetv_library_index.py" scripts/apply_firetv_library_index.py
+          cp "$RUNNER_TEMP/check_firetv_library_index.py" scripts/check_firetv_library_index.py
+          python3 scripts/apply_firetv_library_index.py
+          python3 scripts/check_firetv_library_index.py
+          cp "$RUNNER_TEMP/apply_firetv_startup_priority.py" scripts/apply_firetv_startup_priority.py
+          cp "$RUNNER_TEMP/check_firetv_startup_priority.py" scripts/check_firetv_startup_priority.py
+          python3 scripts/apply_firetv_startup_priority.py
+          python3 scripts/check_firetv_startup_priority.py
+          cp "$RUNNER_TEMP/apply_firetv_focus_index.py" scripts/apply_firetv_focus_index.py
+          cp "$RUNNER_TEMP/check_firetv_focus_index.py" scripts/check_firetv_focus_index.py
+          python3 scripts/apply_firetv_focus_index.py
+          python3 scripts/check_firetv_focus_index.py
+          cp "$RUNNER_TEMP/apply_firetv_no_music_restore.py" scripts/apply_firetv_no_music_restore.py
+          cp "$RUNNER_TEMP/check_firetv_no_music_restore.py" scripts/check_firetv_no_music_restore.py
+          python3 scripts/apply_firetv_no_music_restore.py
+          python3 scripts/check_firetv_no_music_restore.py
+          cp "$RUNNER_TEMP/apply_firetv_artwork_priority.py" scripts/apply_firetv_artwork_priority.py
+          cp "$RUNNER_TEMP/check_firetv_artwork_priority.py" scripts/check_firetv_artwork_priority.py
+          python3 scripts/apply_firetv_artwork_priority.py
+          python3 scripts/check_firetv_artwork_priority.py
+          cp "$RUNNER_TEMP/apply_firetv_plex_request_coalescing.py" scripts/apply_firetv_plex_request_coalescing.py
+          cp "$RUNNER_TEMP/check_firetv_plex_request_coalescing.py" scripts/check_firetv_plex_request_coalescing.py
+          python3 scripts/apply_firetv_plex_request_coalescing.py
+          python3 scripts/check_firetv_plex_request_coalescing.py
+          cp "$RUNNER_TEMP/apply_firetv_media3_volume.py" scripts/apply_firetv_media3_volume.py
+          cp "$RUNNER_TEMP/check_firetv_media3_volume.py" scripts/check_firetv_media3_volume.py
+          python3 scripts/apply_firetv_media3_volume.py
+          python3 scripts/check_firetv_media3_volume.py
+          cp "$RUNNER_TEMP/apply_firetv_memory_budget.py" scripts/apply_firetv_memory_budget.py
+          cp "$RUNNER_TEMP/check_firetv_memory_budget.py" scripts/check_firetv_memory_budget.py
+          python3 scripts/apply_firetv_memory_budget.py
+          python3 scripts/check_firetv_memory_budget.py
+          cp "$RUNNER_TEMP/apply_firetv_dependency_cleanup.py" scripts/apply_firetv_dependency_cleanup.py
+          cp "$RUNNER_TEMP/check_firetv_dependency_cleanup.py" scripts/check_firetv_dependency_cleanup.py
+          python3 scripts/apply_firetv_dependency_cleanup.py
+          python3 scripts/check_firetv_dependency_cleanup.py
+          if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
+            echo "ERROR: Kotlin source still imports a removed MPV player" >&2
+            exit 1
+          fi
+          test ! -e android/app/src/main/kotlin/com/edde746/plezy/mpv
+          test ! -e android/app/src/main/kotlin/com/edde746/plezy/shared/MpvContentUriResolver.kt
+          test ! -e android/app/src/main/kotlin/com/edde746/plezy/shared/GlCapabilities.kt
+          test ! -e android/app/src/test/kotlin/com/edde746/plezy/shared/MpvContentUriResolverTest.kt
+          test ! -e android/app/src/androidTest/kotlin/com/edde746/plezy/mpv
+          test ! -e android/app/src/androidTestDebug/kotlin/com/edde746/plezy/mpv
+          test ! -e android/app/src/debug/kotlin/com/edde746/plezy/mpv
+          if grep -qE 'OsdPlanePolicy|createOsdSurface|com.edde746.plezy.mpv' android/app/src/main/kotlin/com/edde746/plezy/shared/PlayerSurfaceHost.kt; then
+            echo "MPV-only OSD surface remains in shared native code" >&2
+            exit 1
+          fi
+          test ! -e scripts/audit_firetv_source.py
+          cp "$RUNNER_TEMP/audit_firetv_source.py" scripts/audit_firetv_source.py
+          # Include the actual reviewed Kotlin bridge, deleted native MPV files,
+          # FFmpeg-only Gradle changes, Dart guardrails and corresponding source.
+          git add -A
+          git diff --cached --check
+          git commit -m "perf: Plex-only Home Assistant Fire TV code paths"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("BUILDING-CUSTOM-FIRE-TV.md")
+          t = p.read_text()
+          changes = {
+            "flutter build apk --debug --split-per-abi": "flutter build apk --release --target-platform android-arm --split-per-abi",
+            "app-armeabi-v7a-debug.apk": "app-armeabi-v7a-release.apk",
+          }
+          for old, new in changes.items():
+            if t.count(old) != 1:
+              raise SystemExit("BUILDING documentation changed; review: " + old)
+            t = t.replace(old, new)
+          t = t.replace(
+            "flutter build apk --release --target-platform android-arm --split-per-abi",
+            "flutter build apk --release --target-platform android-arm --split-per-abi "
+            "--dart-define=PLEZY_FIRETV_PLEX_ONLY=true "
+            "--dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true "
+            "--dart-define=PLEZY_HA_MANAGED_UPDATES=true",
+          )
+          t += "\nFire TV movies/TV edition: MPV player code removed from native runtime.\n"
+          t += "Plex music playback is unsupported; ExoPlayer retains FFmpeg audio decoders.\n"
+          t += "The build uses checksum-pinned mpv-android AAR as a BUILD-TIME FFmpeg source only.\n"
+          t += "It also sets --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true and --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true.\n"
+          t += "This candidate adds --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true; local Plex Home remains.\n"
+          t += "Discord Rich Presence and dart_discord_presence are removed at source/pre-build; normal Plex watched state remains.\n"
+          t += "Watch Together room providers, relays and UI entrypoints are disabled. OpenWatchParty source retained until the dependency-pruning phase.\n"
+          t += "\nThe Plex-only Fire TV variant disables non-Plex sign-in and connection binding.\n"
+          t += "It is selected only with PLEZY_FIRETV_PLEX_ONLY=true; the default remains unchanged.\n"
+          t += "The candidate is release-signed via android/key.properties set by CI.\n"
+          t += "The private signing key is not in this archive. See the test workflow.\n"
+          p.write_text(t)
+          PY
+          git add BUILDING-CUSTOM-FIRE-TV.md
+          git commit -m "docs: describe candidate release compilation and signing"
+          test -s LICENSE
+          test -s HA-SHUFFLE-NOTICE.md
+          echo "source_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Assert stacked source passes audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/audit_firetv_source.py --output source-audit.txt
+          test -s source-audit.txt
+          test -f lib/services/firetv_build_flags.dart
+          test ! -d android/app/src/main/kotlin/com/edde746/plezy/mpv
+          test -f android/app/src/main/kotlin/com/edde746/plezy/exoplayer/ExoPlayerPlugin.kt
+          git diff --check
+          echo 'All staged source overlays and source audits passed.' >> "$GITHUB_STEP_SUMMARY"
+
