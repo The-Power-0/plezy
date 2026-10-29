@@ -130,6 +130,14 @@ replace_once(
     "  late final List<Tracker> _trackers = kFireTvNoExternalServices ? <Tracker>[] : [",
 )
 
+replace_once(
+    coordinator,
+    "  Future<void> flushWriteQueue() async {\n",
+    "  Future<void> flushWriteQueue() async {\n"
+    "    // Do not read/replay old external tracker writes in the appliance build.\n"
+    "    if (kFireTvNoExternalServices) return;\n",
+)
+
 # Remove Services hub; it consists solely of services intentionally disabled
 # in this Fire TV build, but preserve it for normal builds.
 settings = "lib/screens/settings/settings_screen.dart"
