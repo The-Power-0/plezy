@@ -27,11 +27,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 100
     steps:
-      - name: Checkout maintained build logic
+      # workflow_dispatch is started on the selected experimental PR head.
+      # Never checkout production here: it intentionally lacks the staged
+      # overlay scripts and would silently test different source.
+      - name: Checkout selected experimental source commit
         uses: actions/checkout@v5
         with:
-          ref: ha-shuffle-v2
+          ref: ${{ github.sha }}
           fetch-depth: 0
+
+      - name: Verify selected source provenance before source overlay
+        shell: bash
+        env:
+          SELECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SELECTED_SHA"
+          test -f .github/patches/apply_firetv_mpv_retirement.py
+          test -f .github/patches/apply_firetv_no_music_restore.py
+          test -f .github/patches/check_firetv_no_music_restore.py
+          test -f scripts/audit_firetv_source.py
+          python3 .github/patches/check_firetv_candidate_source_pin.py
+          echo "Experimental patch source commit: $SELECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Resolve upstream version
         id: version
