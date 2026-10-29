@@ -92,6 +92,15 @@ jobs:
           fi
           test ! -e android/app/src/main/kotlin/com/edde746/plezy/mpv
           test ! -e android/app/src/main/kotlin/com/edde746/plezy/shared/MpvContentUriResolver.kt
+          test ! -e android/app/src/main/kotlin/com/edde746/plezy/shared/GlCapabilities.kt
+          test ! -e android/app/src/test/kotlin/com/edde746/plezy/shared/MpvContentUriResolverTest.kt
+          test ! -e android/app/src/androidTest/kotlin/com/edde746/plezy/mpv
+          test ! -e android/app/src/androidTestDebug/kotlin/com/edde746/plezy/mpv
+          test ! -e android/app/src/debug/kotlin/com/edde746/plezy/mpv
+          if grep -qE 'OsdPlanePolicy|createOsdSurface|com.edde746.plezy.mpv' android/app/src/main/kotlin/com/edde746/plezy/shared/PlayerSurfaceHost.kt; then
+            echo "MPV-only OSD surface remains in shared native code" >&2
+            exit 1
+          fi
           test ! -e scripts/audit_firetv_source.py
           cp "$RUNNER_TEMP/audit_firetv_source.py" scripts/audit_firetv_source.py
           # Include the actual reviewed Kotlin bridge, deleted native MPV files,
@@ -191,7 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           cd android
-          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --tests '*OsdPlanePolicyTest' --no-daemon
+          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --no-daemon
 
       - name: Configure same signing key for RELEASE build type
         env:
