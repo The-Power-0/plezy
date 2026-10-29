@@ -69,6 +69,8 @@ jobs:
           cp .github/patches/check_firetv_no_discord_source.py "$RUNNER_TEMP/check_firetv_no_discord_source.py"
           cp .github/patches/apply_firetv_remove_watch_together.py "$RUNNER_TEMP/apply_firetv_remove_watch_together.py"
           cp .github/patches/check_firetv_no_watch_together_source.py "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
+          cp .github/patches/apply_firetv_no_plezy_remote.py "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
+          cp .github/patches/check_firetv_no_plezy_remote_source.py "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
           cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
@@ -83,6 +85,8 @@ jobs:
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_discord_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_remove_watch_together.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
           cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
           cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
           cp .github/patches/ha-shuffle.patch "$RUNNER_TEMP/ha-shuffle.patch"
@@ -114,6 +118,10 @@ jobs:
           cp "$RUNNER_TEMP/check_firetv_no_watch_together_source.py" scripts/check_firetv_no_watch_together_source.py
           python3 scripts/apply_firetv_remove_watch_together.py
           python3 scripts/check_firetv_no_watch_together_source.py
+          cp "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py" scripts/apply_firetv_no_plezy_remote.py
+          cp "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py" scripts/check_firetv_no_plezy_remote_source.py
+          python3 scripts/apply_firetv_no_plezy_remote.py
+          python3 scripts/check_firetv_no_plezy_remote_source.py
           if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
             echo "ERROR: Kotlin source still imports a removed MPV player" >&2
             exit 1
@@ -202,6 +210,8 @@ jobs:
             echo "Full MPV runtime AAR is still an implementation dependency" >&2
             exit 1
           fi
+          flutter test test/services/firetv_no_remote_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true --dart-define=PLEZY_FIRETV_NO_COMPANION_REMOTE=true test/services/firetv_no_remote_test.dart
           flutter test test/services/firetv_no_watch_together_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true test/services/firetv_no_watch_together_appliance_test.dart
           flutter test test/services/firetv_external_services_default_test.dart
@@ -275,6 +285,7 @@ jobs:
             --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true \
             --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true \
             --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true \
+            --dart-define=PLEZY_FIRETV_NO_COMPANION_REMOTE=true \
             --dart-define=PLEZY_HA_MANAGED_UPDATES=true
           FILE="build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk"
           test -s "$FILE"
@@ -427,6 +438,7 @@ jobs:
             echo "external_catalog_requests_trackers_enabled=false"
             echo "discord_rich_presence=false"
             echo "watch_together_runtime_enabled=false"
+            echo "plezy_remote_runtime_enabled=false"
             echo "openwatchparty_dependency_present=true"
             echo "dart_discord_presence_dependency=false"
             echo "ffmpeg_native_source=pinned_build_only_aar"
