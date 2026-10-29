@@ -143,6 +143,8 @@ change(
 
 services_ui = "lib/screens/settings/services_settings_screen.dart"
 remove_line(services_ui, "import '../../services/discord_rpc_service.dart';")
+remove_line(services_ui, "import '../../services/settings_service.dart';")
+remove_line(services_ui, "import '../../widgets/setting_tile.dart';")
 change(
     services_ui,
     "            if (DiscordRPCService.isAvailable)\n"
