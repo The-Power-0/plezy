@@ -39,6 +39,16 @@ if not dest.exists() or "usingMpvFallback" not in dest.read_text(encoding="utf-8
     raise SystemExit("Unexpected upstream ExoPlayer plugin: review before replacing")
 shutil.copyfile(src, dest)
 print("ExoPlayer-only: replaced native plugin with a Media3-only bridge")
+# Keep targeted unit coverage for the replacement after removing obsolete
+# tests that exercise the deleted MPV player. No unit tests run in this script.
+test_source = Path("scripts/firetv_exoplayer_only_plugin/ExoPlayerOnlyPluginTest.kt")
+if not test_source.is_file():
+    raise SystemExit("Missing Media3-only native replacement test")
+test_dest = Path("android/app/src/test/kotlin/com/edde746/plezy/exoplayer/ExoPlayerOnlyPluginTest.kt")
+if test_dest.exists():
+    raise SystemExit("Upstream already defines ExoPlayerOnlyPluginTest; review before replacing")
+test_dest.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(test_source, test_dest)
 
 activity = "android/app/src/main/kotlin/com/edde746/plezy/PlezyActivity.kt"
 replace_one(activity, "import com.edde746.plezy.mpv.MpvAudioPlayerPlugin\n", "")
