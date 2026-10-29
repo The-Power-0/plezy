@@ -143,6 +143,14 @@ change(sheet,
        "        if (!kFireTvNoWatchTogether)\n"
        "          if (context.watch<WatchTogetherProvider?>() case final watchTogether? when watchTogether.isInSession)")
 
+# The playback speed sheet also reads room drift ownership on every rate
+# update. Avoid even a failed provider lookup when rooms are disabled.
+change(sheet,
+       "  double _displayedRate(double playerRate) {\n    try {",
+       "  double _displayedRate(double playerRate) {\n"
+       "    if (kFireTvNoWatchTogether) return playerRate;\n"
+       "    try {")
+
 controls = "lib/widgets/video_controls/parts/playback_input.dart"
 change(controls, "  bool _syncOwnsRate() {\n    try {",
        "  bool _syncOwnsRate() {\n"
