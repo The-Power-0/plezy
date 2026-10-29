@@ -104,6 +104,8 @@ jobs:
           cp .github/patches/check_firetv_media3_volume.py "$RUNNER_TEMP/check_firetv_media3_volume.py"
           cp .github/patches/apply_firetv_memory_budget.py "$RUNNER_TEMP/apply_firetv_memory_budget.py"
           cp .github/patches/check_firetv_memory_budget.py "$RUNNER_TEMP/check_firetv_memory_budget.py"
+          cp .github/patches/apply_firetv_dependency_cleanup.py "$RUNNER_TEMP/apply_firetv_dependency_cleanup.py"
+          cp .github/patches/check_firetv_dependency_cleanup.py "$RUNNER_TEMP/check_firetv_dependency_cleanup.py"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
           cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
@@ -136,6 +138,8 @@ jobs:
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_media3_volume.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_memory_budget.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_memory_budget.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_dependency_cleanup.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_dependency_cleanup.py"
           cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
           cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
           cp .github/patches/ha-shuffle.patch "$RUNNER_TEMP/ha-shuffle.patch"
@@ -203,6 +207,10 @@ jobs:
           cp "$RUNNER_TEMP/check_firetv_memory_budget.py" scripts/check_firetv_memory_budget.py
           python3 scripts/apply_firetv_memory_budget.py
           python3 scripts/check_firetv_memory_budget.py
+          cp "$RUNNER_TEMP/apply_firetv_dependency_cleanup.py" scripts/apply_firetv_dependency_cleanup.py
+          cp "$RUNNER_TEMP/check_firetv_dependency_cleanup.py" scripts/check_firetv_dependency_cleanup.py
+          python3 scripts/apply_firetv_dependency_cleanup.py
+          python3 scripts/check_firetv_dependency_cleanup.py
           if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
             echo "ERROR: Kotlin source still imports a removed MPV player" >&2
             exit 1
