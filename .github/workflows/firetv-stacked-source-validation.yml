@@ -250,3 +250,76 @@ jobs:
           git diff --check
           echo 'All staged source overlays and source audits passed.' >> "$GITHUB_STEP_SUMMARY"
 
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies and test deep links
+        env:
+          IMPLEMENTATION: ${{ steps.source.outputs.implementation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          python3 scripts/audit_firetv_source.py --output Plezy-FireTV-NoMPV-SourceAudit.txt
+          # Make sure migration actually removed player implementation files.
+          test ! -e android/app/src/main/kotlin/com/edde746/plezy/mpv
+          grep -q 'result.success("exoplayer")' android/app/src/main/kotlin/com/edde746/plezy/exoplayer/ExoPlayerPlugin.kt
+          if grep -q 'implementation(mpvAarDependency)' android/app/build.gradle.kts; then
+            echo "Full MPV runtime AAR is still an implementation dependency" >&2
+            exit 1
+          fi
+          flutter test test/services/firetv_no_remote_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true --dart-define=PLEZY_FIRETV_NO_COMPANION_REMOTE=true test/services/firetv_no_remote_test.dart
+          flutter test test/services/firetv_no_watch_together_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true test/services/firetv_no_watch_together_appliance_test.dart
+          flutter test test/services/firetv_external_services_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true test/services/firetv_external_services_appliance_test.dart
+          flutter test test/services/firetv_movies_tv_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_movies_tv_only_test.dart
+          flutter test test/services/firetv_exoplayer_video_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_exoplayer_video_flag_test.dart
+          flutter test test/services/firetv_build_flags_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
+          flutter analyze lib/navigation/profile_session_screen.dart \
+            lib/focus/focusable_action_bar.dart \
+            lib/main.dart lib/screens/main_screen.dart \
+            lib/screens/libraries/tabs/library_browse_tab.dart \
+            lib/screens/discover_screen.dart lib/watch_together/providers/watch_together_provider.dart \
+            lib/watch_together/widgets/watch_notice_listener.dart lib/widgets/video_controls/video_controls.dart \
+            lib/widgets/video_controls/widgets/video_controls_header.dart lib/widgets/video_controls/sheets/video_settings_sheet.dart \
+            lib/screens/video_player/parts/watch_together.dart lib/screens/video_player/parts/build.dart \
+            lib/services/agent_playback_commands.dart lib/providers/catalog_sources_provider.dart lib/services/trackers/tracker_coordinator.dart \
+            lib/screens/settings/settings_screen.dart lib/providers/libraries_provider.dart \
+            lib/navigation/profile_session_screen.dart lib/widgets/media_context_menu.dart \
+            lib/mpv/player/player.dart lib/screens/video_player_screen.dart lib/screens/settings/playback_settings_screen.dart \
+            lib/main.dart lib/screens/main_screen.dart lib/screens/auth_screen.dart \
+            lib/screens/settings/add_connection_screen.dart lib/profiles/active_profile_binder.dart \
+            lib/services/firetv_build_flags.dart
+          flutter pub deps --style=compact > /dev/null
+          if [[ "$IMPLEMENTATION" == legacy ]]; then
+            flutter test test/utils/shuffle_show_deep_link_test.dart
+            flutter analyze lib/utils/shuffle_show_deep_link.dart
+          else
+            flutter test test/services/deep_links/legacy_shuffle_link_test.dart
+            flutter test test/services/deep_links/deep_link_test.dart
+            flutter analyze lib/services/deep_links/deep_link.dart
+          fi
+
+      - name: Test Media3-only plugin contract before building the APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd android
+          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --no-daemon
+
