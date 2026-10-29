@@ -246,7 +246,20 @@ jobs:
               raise SystemExit("Media3 FFmpeg JNI decoder library missing")
             if not any(p.endswith("libavcodec.so") for p in members):
               raise SystemExit("FFmpeg codec library missing")
-          print("Verified: no MPV player binaries, Media3 FFmpeg decoder present")
+            # Native MPV must also be absent from all dex class definitions.
+            # The name-only .so check does not catch accidentally merged Java glue.
+            forbidden = (
+                b"Lcom/edde746/plezy/mpv/",
+                b"Lcom/edde746/mpv/",
+                b"MpvPlayerCore",
+                b"MpvAudioPlayerPlugin",
+            )
+            for dex in (p for p in members if p.startswith("classes") and p.endswith(".dex")):
+              data = a.read(dex)
+              for marker in forbidden:
+                if marker in data:
+                  raise SystemExit("MPV player Java/Kotlin runtime remains in " + dex)
+          print("Verified: no MPV native libraries or class definitions; Media3 FFmpeg present")
           PY
           sha256sum Plezy-FireTV-NoMPV-ReleaseCandidate.apk > Plezy-FireTV-NoMPV-ReleaseCandidate.apk.sha256
 
