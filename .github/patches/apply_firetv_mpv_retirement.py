@@ -69,6 +69,65 @@ replace_one(
     '  mpvAarNatives(mpvAarDependency)',
 )
 
+# This is deliberately more specific than kFireTvPlexOnly: the separate
+# Plex-only test build may still support music, but this target never does.
+with flag.open("a", encoding="utf-8") as output:
+    output.write(
+        "\n/// Dedicated Plex movies + TV build: do not show music libraries or controls.\n"
+        "const bool kFireTvMoviesTvOnly =\n"
+        "    bool.fromEnvironment('PLEZY_FIRETV_MOVIES_TV_ONLY', defaultValue: false);\n"
+    )
+
+# Both the sidebar and library browser consume LibrariesProvider. Filtering
+# once before order/index construction keeps their selections consistent
+# across a full refresh, delta updates and persisted library order.
+provider = "lib/providers/libraries_provider.dart"
+replace_one(
+    provider,
+    "import '../services/storage_service.dart';",
+    "import '../services/storage_service.dart';\n"
+    "import '../services/firetv_build_flags.dart';",
+)
+replace_one(
+    provider,
+    "  List<MediaLibrary> _applyLibraryOrder(List<MediaLibrary> libraries, List<String>? savedOrder) {\n",
+    "  List<MediaLibrary> _applyLibraryOrder(List<MediaLibrary> libraries, List<String>? savedOrder) {\n"
+    "    if (kFireTvMoviesTvOnly) {\n"
+    "      libraries = libraries.where((library) => !library.kind.isMusic).toList(growable: false);\n"
+    "    }\n",
+)
+
+# Avoid mounting the floating music UI entirely. Preserve the lazily created
+# MusicPlaybackService provider because video playback still checks whether
+# an existing audio session owns the output; it will never start one here.
+profile_screen = "lib/navigation/profile_session_screen.dart"
+replace_one(
+    profile_screen,
+    "import '../services/music/music_playback_service_impl.dart';",
+    "import '../services/music/music_playback_service_impl.dart';\n"
+    "import '../services/firetv_build_flags.dart';",
+)
+replace_one(
+    profile_screen,
+    "                  const Positioned.fill(child: MusicMiniPlayerOverlay()),",
+    "                  if (!kFireTvMoviesTvOnly) const Positioned.fill(child: MusicMiniPlayerOverlay()),",
+)
+
+# Content can still be discovered by a generic Plex search. Don't offer a
+# button that would call the unsupported music player in this edition.
+context_menu = "lib/widgets/media_context_menu.dart"
+replace_one(
+    context_menu,
+    "import '../services/music/music_playback_service.dart';",
+    "import '../services/music/music_playback_service.dart';\n"
+    "import '../services/firetv_build_flags.dart';",
+)
+replace_one(
+    context_menu,
+    "      if (mediaKind.isMusic) ..._musicMenuActions(context, menu, mediaItem),",
+    "      if (mediaKind.isMusic && !kFireTvMoviesTvOnly) ..._musicMenuActions(context, menu, mediaItem),",
+)
+
 # This device never exposes Plex music; throw explicitly if a stray route
 # attempts to open a legacy audio-only MPV player. Do not change other builds.
 player = "lib/mpv/player/player.dart"
