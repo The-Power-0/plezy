@@ -34,12 +34,7 @@ with flag_file.open("a", encoding="utf-8") as flags:
     )
 
 profile = "lib/navigation/profile_session_screen.dart"
-replace_once(
-    profile,
-    "import '../providers/trackers_provider.dart';",
-    "import '../providers/trackers_provider.dart';\n"
-    "import '../services/firetv_build_flags.dart';",
-)
+# The earlier movies/TV overlay already imports firetv_build_flags.dart here.
 replace_once(
     profile,
     "    plexSessionSupplier: () => resolvePlexDiscoverSession(",
@@ -152,12 +147,7 @@ replace_once(
 
 # Disable the Seerr permission probe on every background-to-foreground resume.
 main = "lib/screens/main_screen.dart"
-replace_once(
-    main,
-    "import '../services/settings_service.dart';",
-    "import '../services/settings_service.dart';\n"
-    "import '../services/firetv_build_flags.dart';",
-)
+# The Plex-only source overlay already imports firetv_build_flags.dart here.
 replace_once(
     main,
     "    if (resumedFromBackground && mounted) {\n"
