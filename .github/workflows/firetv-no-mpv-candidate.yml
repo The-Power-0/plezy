@@ -65,6 +65,8 @@ jobs:
           cp .github/patches/check_firetv_no_mpv_source.py "$RUNNER_TEMP/check_firetv_no_mpv_source.py"
           cp .github/patches/apply_firetv_external_services_pruning.py "$RUNNER_TEMP/apply_firetv_external_services_pruning.py"
           cp .github/patches/check_firetv_external_services_source.py "$RUNNER_TEMP/check_firetv_external_services_source.py"
+          cp .github/patches/apply_firetv_remove_discord.py "$RUNNER_TEMP/apply_firetv_remove_discord.py"
+          cp .github/patches/check_firetv_no_discord_source.py "$RUNNER_TEMP/check_firetv_no_discord_source.py"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
           cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
@@ -75,6 +77,8 @@ jobs:
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_mpv_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_external_services_pruning.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_external_services_source.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_remove_discord.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_discord_source.py"
           cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
           cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
           cp .github/patches/ha-shuffle.patch "$RUNNER_TEMP/ha-shuffle.patch"
@@ -98,6 +102,10 @@ jobs:
           python3 scripts/apply_firetv_external_services_pruning.py
           cp "$RUNNER_TEMP/check_firetv_external_services_source.py" scripts/check_firetv_external_services_source.py
           python3 scripts/check_firetv_external_services_source.py
+          cp "$RUNNER_TEMP/apply_firetv_remove_discord.py" scripts/apply_firetv_remove_discord.py
+          cp "$RUNNER_TEMP/check_firetv_no_discord_source.py" scripts/check_firetv_no_discord_source.py
+          python3 scripts/apply_firetv_remove_discord.py
+          python3 scripts/check_firetv_no_discord_source.py
           if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
             echo "ERROR: Kotlin source still imports a removed MPV player" >&2
             exit 1
@@ -144,6 +152,7 @@ jobs:
           t += "The build uses checksum-pinned mpv-android AAR as a BUILD-TIME FFmpeg source only.\n"
           t += "It also sets --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true and --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true.\n"
           t += "This candidate adds --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true; local Plex Home remains.\n"
+          t += "Discord Rich Presence and dart_discord_presence are removed at source/pre-build; normal Plex watched state remains.\n"
           t += "\nThe Plex-only Fire TV variant disables non-Plex sign-in and connection binding.\n"
           t += "It is selected only with PLEZY_FIRETV_PLEX_ONLY=true; the default remains unchanged.\n"
           t += "The candidate is release-signed via android/key.properties set by CI.\n"
@@ -400,6 +409,8 @@ jobs:
             echo "music_playback_supported=false"
             echo "movies_tv_only=true"
             echo "external_catalog_requests_trackers_enabled=false"
+            echo "discord_rich_presence=false"
+            echo "dart_discord_presence_dependency=false"
             echo "ffmpeg_native_source=pinned_build_only_aar"
             echo "ha_managed_updates=true"
             echo "target_abi=armeabi-v7a"
