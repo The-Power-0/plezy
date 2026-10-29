@@ -13,7 +13,6 @@
 | 7 | #14 | HA cold-start priority and skipped obsolete warmups |
 | 8 | #15 | O(1) D-pad action-bar focus binding lookup |
 | 9 | #16 | Disable persisted music playback restoration |
-
 | 10 | #17 | Candidate source provenance: selected experimental SHA, not production checkout |
 | 11 | #18 | Visible-first artwork loading; capped speculative prefetch |
 | 12 | #19 | Plex server preference in-flight request coalescing |
