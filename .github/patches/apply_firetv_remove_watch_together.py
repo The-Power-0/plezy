@@ -173,6 +173,18 @@ change(provider, "  Future<owp.WatchParty<WatchCopy>> _newParty() async {\n",
        "      throw StateError('Watch Together is unavailable in this Fire TV edition');\n"
        "    }\n")
 
+# Avoid room-provider lookups from HA/agent playback commands when absent.
+agent = "lib/services/agent_playback_commands.dart"
+change(agent,
+       "import '../watch_together/providers/watch_together_provider.dart';",
+       "import '../watch_together/providers/watch_together_provider.dart';\n"
+       "import '../services/firetv_build_flags.dart';")
+change(agent,
+       "    final watchTogether = context.context.read<WatchTogetherProvider?>();",
+       "    final watchTogether = kFireTvNoWatchTogether\n"
+       "        ? null\n"
+       "        : context.context.read<WatchTogetherProvider?>();")
+
 nav = "lib/utils/video_player_navigation.dart"
 change(nav, "import '../watch_together/providers/watch_together_provider.dart';",
        "import '../watch_together/providers/watch_together_provider.dart';\n"
