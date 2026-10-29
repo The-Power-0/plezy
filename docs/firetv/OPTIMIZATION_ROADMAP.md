@@ -15,7 +15,7 @@
 | Seerr/Overseerr/Jellyseerr requests | No request sheet, permissions refresh, session or API calls | Do not interfere with server-side Sonarr/Radarr | Removal step 01 |
 | Trakt/MAL/AniList/Simkl | No session restore, watched sync, ratings or scrobbling | Preserve Plex watched state | Removal step 01 |
 | MDBList | Also disable external scores and catalog watchlists | Preserve metadata returned by Plex | Removal step 01 |
-| Discord Rich Presence | Remove desktop RPC integration | Preserve diagnostics and Android app lifecycle | Removal step 02 |
+| Discord Rich Presence | Remove desktop RPC integration | Preserve diagnostics and Android app lifecycle | Source overlay + audit in step 02 (not compiled) |
 | Watch Together | Remove room coordination, relay and UI | Preserve ordinary playback and episode advance | Removal step 03 |
 | Plezy Remote | Remove host/peer, pairing, LAN discovery and UI | Keep Fire TV D-pad, Android remote keys, and HA deep links | Removal step 04 |
 
@@ -33,6 +33,10 @@ Opt-in `PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true`:
 - keeps default builds unaffected and does not erase saved credentials.
 
 This is runtime exclusion and entry-point deactivation, **not proof that unused source has been deleted or removed from the compiled binary**. Reachable-source pruning will follow full dependency analysis.
+
+## Step 02 — Discord Rich Presence removal
+
+The isolated source overlay deletes Discord's Dart package and service, removes startup and video/music callback traffic (including a rate-listener subscription), removes its settings and direct-control routes, and retains all normal Plex progress tracking. A source audit rejects active Discord runtime references. No APK build or device benchmark has run. See `OPTIMIZATION_02_DISCORD.md`.
 
 ## Sixteen performance workstreams
 
