@@ -47,6 +47,7 @@ jobs:
           test -f .github/patches/apply_firetv_no_music_restore.py
           test -f .github/patches/check_firetv_no_music_restore.py
           test -f scripts/audit_firetv_source.py
+          python3 .github/patches/check_firetv_candidate_source_pin.py
           echo "Experimental patch source commit: $SELECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Resolve upstream version
