@@ -43,6 +43,9 @@ check("lib/screens/settings/settings_screen.dart",
 check("lib/watch_together/providers/watch_together_provider.dart",
       "if (kFireTvNoWatchTogether) {",
       "throw StateError('Watch Together is unavailable")
+check("lib/services/agent_playback_commands.dart",
+      "final watchTogether = kFireTvNoWatchTogether",
+      "context.context.read<WatchTogetherProvider?>()")
 check("lib/utils/video_player_navigation.dart",
       "if (kFireTvNoWatchTogether) return false;")
 home = Path("lib/screens/discover_screen.dart").read_text(encoding="utf-8")
