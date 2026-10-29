@@ -63,6 +63,7 @@ jobs:
           cp .github/patches/apply_firetv_exoplayer_video.py "$RUNNER_TEMP/apply_firetv_exoplayer_video.py"
           cp .github/patches/apply_firetv_mpv_retirement.py "$RUNNER_TEMP/apply_firetv_mpv_retirement.py"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
+          cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
           cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
           python3 -m py_compile "$RUNNER_TEMP/audit_firetv_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_plex_only.py"
@@ -82,6 +83,7 @@ jobs:
           cp "$RUNNER_TEMP/apply_firetv_exoplayer_video.py" scripts/apply_firetv_exoplayer_video.py
           mkdir -p scripts/firetv_exoplayer_only_plugin
           cp "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt" scripts/firetv_exoplayer_only_plugin/ExoPlayerPlugin.kt
+          cp "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt" scripts/firetv_exoplayer_only_plugin/ExoPlayerOnlyPluginTest.kt
           cp "$RUNNER_TEMP/apply_firetv_mpv_retirement.py" scripts/apply_firetv_mpv_retirement.py
           python3 scripts/apply_firetv_mpv_retirement.py
           if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
@@ -179,6 +181,13 @@ jobs:
             flutter test test/services/deep_links/deep_link_test.dart
             flutter analyze lib/services/deep_links/deep_link.dart
           fi
+
+      - name: Test Media3-only plugin contract before building the APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd android
+          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --no-daemon
 
       - name: Configure same signing key for RELEASE build type
         env:
