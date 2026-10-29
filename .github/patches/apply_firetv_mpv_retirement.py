@@ -31,7 +31,7 @@ if not flag.exists() or "kFireTvForceExoVideo" not in flag.read_text(encoding="u
 # The existing Flutter API remains intact: ExoPlayerCore still handles video,
 # ASS subtitles, Dolby Vision conversion, decoder recovery and error reporting.
 # Native MPV does not exist, including on unsupported format failures.
-src = Path(".github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt")
+src = Path("scripts/firetv_exoplayer_only_plugin/ExoPlayerPlugin.kt")
 if not src.is_file():
     raise SystemExit("Missing reviewed ExoPlayer-only plugin source")
 dest = Path("android/app/src/main/kotlin/com/edde746/plezy/exoplayer/ExoPlayerPlugin.kt")
