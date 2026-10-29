@@ -154,6 +154,31 @@ replace_one(
 # MPV. Remove Kotlin MPV implementation sources in this *candidate checkout*,
 # never from the maintained automation/upstream source branch. Android MPV tests
 # are excluded because they explicitly exercise removed MPV runtime interfaces.
+# PlayerSurfaceHost is used by Media3, but upstream stores its otherwise
+# shared OSD-size geometry helper under the mpv package. Move the pure policy
+# and its tests into shared/ BEFORE removing the mpv implementation.
+surface_host = "android/app/src/main/kotlin/com/edde746/plezy/shared/PlayerSurfaceHost.kt"
+osd_old = Path("android/app/src/main/kotlin/com/edde746/plezy/mpv/OsdPlanePolicy.kt")
+osd_new = Path("android/app/src/main/kotlin/com/edde746/plezy/shared/OsdPlanePolicy.kt")
+if not osd_old.is_file() or osd_new.exists():
+    raise SystemExit("Unexpected shared OSD geometry policy layout")
+old_package = "package com.edde746.plezy.mpv"
+source = osd_old.read_text(encoding="utf-8")
+if source.count(old_package) != 1:
+    raise SystemExit("MPV OSD policy package changed upstream")
+osd_new.write_text(source.replace(old_package, "package com.edde746.plezy.shared"), encoding="utf-8")
+replace_one(surface_host, "import com.edde746.plezy.mpv.OsdPlanePolicy\n", "")
+osd_test_old = Path("android/app/src/test/kotlin/com/edde746/plezy/mpv/OsdPlanePolicyTest.kt")
+osd_test_new = Path("android/app/src/test/kotlin/com/edde746/plezy/shared/OsdPlanePolicyTest.kt")
+if not osd_test_old.exists() or osd_test_new.exists():
+    raise SystemExit("Unexpected OSD geometry unit test layout")
+osd_test_new.parent.mkdir(parents=True, exist_ok=True)
+test_src = osd_test_old.read_text(encoding="utf-8")
+if test_src.count(old_package) != 1:
+    raise SystemExit("OSD unit-test package changed upstream")
+osd_test_new.write_text(test_src.replace(old_package, "package com.edde746.plezy.shared"), encoding="utf-8")
+print("ExoPlayer-only: preserved shared subtitle/OSD layout helper and tests")
+
 native_mpv = Path("android/app/src/main/kotlin/com/edde746/plezy/mpv")
 if not native_mpv.is_dir() or not (native_mpv / "MpvPlayerCore.kt").exists():
     raise SystemExit("Expected upstream native MPV directory missing")
