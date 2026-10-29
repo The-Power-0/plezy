@@ -118,9 +118,9 @@ change(mutations,
 
 teardown = "lib/screens/profile/profile_teardown.dart"
 change(teardown,
-       "import '../providers/companion_remote_provider.dart';",
-       "import '../providers/companion_remote_provider.dart';\n"
-       "import '../services/firetv_build_flags.dart';")
+       "import '../../providers/companion_remote_provider.dart';",
+       "import '../../providers/companion_remote_provider.dart';\n"
+       "import '../../services/firetv_build_flags.dart';")
 change(teardown,
        "  final companionRemote = context.read<CompanionRemoteProvider>();",
        "  final companionRemote = kFireTvNoCompanionRemote ? null : context.read<CompanionRemoteProvider>();")
