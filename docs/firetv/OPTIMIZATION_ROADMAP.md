@@ -17,7 +17,7 @@
 | MDBList | Also disable external scores and catalog watchlists | Preserve metadata returned by Plex | Removal step 01 |
 | Discord Rich Presence | Remove desktop RPC integration | Preserve diagnostics and Android app lifecycle | Source overlay + audit in step 02 (not compiled) |
 | Watch Together | Block room providers, relay and UI; later prune SDK/types | Preserve ordinary playback and episode advance | Source overlay + audit in step 03, not compiled |
-| Plezy Remote | Remove host/peer, pairing, LAN discovery and UI | Keep Fire TV D-pad, Android remote keys, and HA deep links | Removal step 04 |
+| Plezy Remote | Disable host/peer, pairing, LAN discovery and UI | Keep Fire TV D-pad, Android remote keys, and HA deep links | Stage 04 source overlay and audit drafted, no build |
 
 **Naming trap — "Discover":** `DiscoverScreen`/`DiscoverProvider` is the *local Plex Home* (Continue Watching and server media hubs). `discover.provider.plex.tv` is the cloud catalog/watchlist surfaced through Explore. Only the latter is removed; Home remains.
 
