@@ -16,7 +16,7 @@
 | Trakt/MAL/AniList/Simkl | No session restore, watched sync, ratings or scrobbling | Preserve Plex watched state | Removal step 01 |
 | MDBList | Also disable external scores and catalog watchlists | Preserve metadata returned by Plex | Removal step 01 |
 | Discord Rich Presence | Remove desktop RPC integration | Preserve diagnostics and Android app lifecycle | Source overlay + audit in step 02 (not compiled) |
-| Watch Together | Remove room coordination, relay and UI | Preserve ordinary playback and episode advance | Removal step 03 |
+| Watch Together | Block room providers, relay and UI; later prune SDK/types | Preserve ordinary playback and episode advance | Source overlay + audit in step 03, not compiled |
 | Plezy Remote | Remove host/peer, pairing, LAN discovery and UI | Keep Fire TV D-pad, Android remote keys, and HA deep links | Removal step 04 |
 
 **Naming trap — "Discover":** `DiscoverScreen`/`DiscoverProvider` is the *local Plex Home* (Continue Watching and server media hubs). `discover.provider.plex.tv` is the cloud catalog/watchlist surfaced through Explore. Only the latter is removed; Home remains.
@@ -37,6 +37,10 @@ This is runtime exclusion and entry-point deactivation, **not proof that unused 
 ## Step 02 — Discord Rich Presence removal
 
 The isolated source overlay deletes Discord's Dart package and service, removes startup and video/music callback traffic (including a rate-listener subscription), removes its settings and direct-control routes, and retains all normal Plex progress tracking. A source audit rejects active Discord runtime references. No APK build or device benchmark has run. See `OPTIMIZATION_02_DISCORD.md`.
+
+## Step 03 — Watch Together isolation
+
+The optional build flag blocks room providers, transport, session navigation and playback takeover, hides Home/player room controls, and avoids watch-room layout selectors. The SDK and source types **remain for the later dependency-pruning step**, so this is not yet an APK size win. See `OPTIMIZATION_03_WATCH_TOGETHER.md`. No build was executed.
 
 ## Sixteen performance workstreams
 
