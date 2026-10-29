@@ -154,7 +154,15 @@ class ExoPlayerPlugin :
       "abandonAudioFocus" -> withCore(result) { it.abandonAudioFocus(); result.success(null) }
       "isInitialized" -> result.success(playerCore?.isInitialized == true)
       "getPlayerType" -> result.success("exoplayer")
-      "getStats" -> withCore(result) { result.success(it.getStats() + mapOf("playerType" to "exoplayer")) }
+      "getStats" -> {
+        // Diagnostics can poll during teardown: return a harmless snapshot.
+        // Do not surface a spurious NOT_INITIALIZED error when no player exists.
+        activity?.runOnUiThread {
+          val core = playerCore
+          val stats = if (core?.isInitialized == true) core.getStats() else emptyMap()
+          result.success(stats + mapOf("playerType" to if (core?.isInitialized == true) "exoplayer" else "unknown"))
+        } ?: result.success(mapOf("playerType" to "unknown"))
+      }
       "observeProperty" -> {
         val name = call.argument<String>("name")
         val id = call.argument<Int>("id")
