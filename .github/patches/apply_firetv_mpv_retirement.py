@@ -373,7 +373,9 @@ replace_one(
 
 # Stage B selection remains true and *only* video is supported on this target.
 # If a source refactor removes this guard in a later upstream version, fail.
-if "kFireTvForceExoVideo" not in Path(player).read_text(encoding="utf-8"):
-    raise SystemExit("Forced ExoPlayer player-factory guard missing")
+if "useExoPlayerForAndroidVideo(useExoPlayer ?? false)" not in Path(player).read_text(encoding="utf-8"):
+    raise SystemExit("Forced ExoPlayer player-factory helper call missing")
+if "kFireTvForceExoVideo" not in flag.read_text(encoding="utf-8"):
+    raise SystemExit("ExoPlayer force flag definition missing")
 print("Prepared Fire TV movies/TV only source: native MPV removed; Media3 FFmpeg retained.")
 print("NOT yet compiled. Source and compiled APK must be inspected before device installation.")
