@@ -115,12 +115,13 @@ jobs:
             "flutter build apk --release --target-platform android-arm --split-per-abi",
             "flutter build apk --release --target-platform android-arm --split-per-abi "
             "--dart-define=PLEZY_FIRETV_PLEX_ONLY=true "
+            "--dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true "
             "--dart-define=PLEZY_HA_MANAGED_UPDATES=true",
           )
           t += "\nFire TV movies/TV edition: MPV player code removed from native runtime.\n"
           t += "Plex music playback is unsupported; ExoPlayer retains FFmpeg audio decoders.\n"
           t += "The build uses checksum-pinned mpv-android AAR as a BUILD-TIME FFmpeg source only.\n"
-          t += "It also sets --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true.\n"
+          t += "It also sets --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true and --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true.\n"
           t += "\nThe Plex-only Fire TV variant disables non-Plex sign-in and connection binding.\n"
           t += "It is selected only with PLEZY_FIRETV_PLEX_ONLY=true; the default remains unchanged.\n"
           t += "The candidate is release-signed via android/key.properties set by CI.\n"
@@ -161,11 +162,14 @@ jobs:
             echo "Full MPV runtime AAR is still an implementation dependency" >&2
             exit 1
           fi
+          flutter test test/services/firetv_movies_tv_default_test.dart
+          flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_movies_tv_only_test.dart
           flutter test test/services/firetv_exoplayer_video_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_exoplayer_video_flag_test.dart
           flutter test test/services/firetv_build_flags_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
-          flutter analyze lib/mpv/player/player.dart lib/screens/video_player_screen.dart lib/screens/settings/playback_settings_screen.dart \
+          flutter analyze lib/providers/libraries_provider.dart lib/navigation/profile_session_screen.dart lib/widgets/media_context_menu.dart \
+            lib/mpv/player/player.dart lib/screens/video_player_screen.dart lib/screens/settings/playback_settings_screen.dart \
             lib/main.dart lib/screens/main_screen.dart lib/screens/auth_screen.dart \
             lib/screens/settings/add_connection_screen.dart lib/profiles/active_profile_binder.dart \
             lib/services/firetv_build_flags.dart
@@ -187,7 +191,7 @@ jobs:
         run: |
           set -euo pipefail
           cd android
-          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --no-daemon
+          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --tests '*OsdPlanePolicyTest' --no-daemon
 
       - name: Configure same signing key for RELEASE build type
         env:
@@ -218,6 +222,7 @@ jobs:
           flutter build apk --release --target-platform android-arm --split-per-abi \
             --dart-define=PLEZY_FIRETV_PLEX_ONLY=true \
             --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true \
+            --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true \
             --dart-define=PLEZY_HA_MANAGED_UPDATES=true
           FILE="build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk"
           test -s "$FILE"
@@ -366,6 +371,7 @@ jobs:
             echo "forced_exoplayer_video=true"
             echo "mpv_native_fallback_still_present=false"
             echo "music_playback_supported=false"
+            echo "movies_tv_only=true"
             echo "ffmpeg_native_source=pinned_build_only_aar"
             echo "ha_managed_updates=true"
             echo "target_abi=armeabi-v7a"
