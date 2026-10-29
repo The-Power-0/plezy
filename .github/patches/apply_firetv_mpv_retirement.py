@@ -71,6 +71,75 @@ replace_one(
     "    }\n",
 )
 
+# ExoPlayer's Dart bridge previously replayed MPV fallback state even while
+# running Media3. Remove redundant channel traffic and backend-switch handling.
+dart_exo = "lib/mpv/player/platform/player_android.dart"
+replace_one(
+    dart_exo,
+    "  /// The native plugin switched from ExoPlayer to its mpv fallback for this\n"
+    "  /// session. Sticky for the instance lifetime, mirroring the native flag\n"
+    "  /// (which resets only on initialize/dispose).\n"
+    "  bool _usingMpvFallback = false;\n\n"
+    "  bool get usingMpvFallback => _usingMpvFallback;\n",
+    "  /// Native MPV is absent from the Fire TV edition.\n"
+    "  bool get usingMpvFallback => false;\n",
+)
+replace_one(
+    dart_exo,
+    "  // The fallback runs mpv over MediaCodec — the same display-switch decoder\n"
+    "  // constraint as PlayerNative on Android. The whole startup-gate chain\n"
+    "  // (setVideoFrameRate, playback-restart, seek/drop-buffers refresh,\n"
+    "  // open-paused) already routes per-core natively.\n"
+    "  @override\n"
+    "  bool get needsDecoderRefreshAfterDisplaySwitch => _usingMpvFallback;",
+    "  @override\n"
+    "  bool get needsDecoderRefreshAfterDisplaySwitch => false;",
+)
+replace_one(
+    dart_exo,
+    "  @override\n"
+    "  void handlePlayerEvent(String name, Map? data) {\n"
+    "    if (name == 'backend-switched') {\n"
+    "      // Native player switched from ExoPlayer to MPV due to unsupported format.\n"
+    "      // Clear stale ExoPlayer tracks so applyTrackSelectionWhenReady waits for\n"
+    "      // mpv's track-list instead of immediately applying with ExoPlayer IDs.\n"
+    "      final wasUsingMpvFallback = _usingMpvFallback;\n"
+    "      _usingMpvFallback = true;\n"
+    "      if (!wasUsingMpvFallback) {\n"
+    "        clearTracks();\n"
+    "      }\n"
+    "      backendSwitchedController.add(null);\n"
+    "      return;\n"
+    "    }\n\n"
+    "    super.handlePlayerEvent(name, data);\n"
+    "  }\n",
+    "",
+)
+replace_one(
+    dart_exo,
+    "    // Keep mpv's normalization " + chr(96) + "af" + chr(96) + " flowing through setMpvProperty so the\n"
+    "    // plugin's pendingMpvProperties replay normalizes if exo falls back to mpv.\n"
+    "    await super.setAudioNormalization(enabled);\n",
+    "",
+)
+replace_one(
+    dart_exo,
+    "    // Keep the mpv properties flowing through setMpvProperty so the plugin's\n"
+    "    // pendingMpvProperties replay applies the same limit if exo falls back to\n"
+    "    // mpv mid-session.\n"
+    "    await super.setAudioChannelLimit(effective, centerBoostDb: centerBoostDb, normalize: normalize);\n",
+    "",
+)
+replace_one(
+    dart_exo,
+    "    // Deliberately no 'audio-spdif' write: unlike normalization and downmix, the\n"
+    "    // mpv value is not this list. mpv force-passthroughs every codec named there\n"
+    "    // with no decode fallback, so the plugin derives it from the audio route when\n"
+    "    // the fallback core starts. Queuing the raw list here would overwrite it and\n"
+    "    // strand TrueHD/DTS-HD on sinks that cannot bitstream them (#1703).\n",
+    "",
+)
+
 # With only Media3 video, a native player factory can no longer ever choose
 # MPV. Remove Kotlin MPV implementation sources in this *candidate checkout*,
 # never from the maintained automation/upstream source branch. Android MPV tests
