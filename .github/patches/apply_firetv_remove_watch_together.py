@@ -66,6 +66,11 @@ change(main,
 # the next independent feature-removal PR). This also removes an entire
 # WatchTogetherProvider dependency from Home's reactive rebuild triggers.
 home = "lib/screens/discover_screen.dart"
+change(home, "import '../watch_together/watch_together.dart';\n", "")
+change(home,
+       "              void openWatchTogether() =>\n"
+       "                  Navigator.push(context, MaterialPageRoute(builder: (_) => const WatchTogetherScreen()));\n",
+       "")
 change(home,
        "          Consumer2<WatchTogetherProvider, CompanionRemoteProvider>(\n"
        "            builder: (context, watchTogether, companionRemote, _) {",
