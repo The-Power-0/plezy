@@ -36,7 +36,8 @@ check("lib/widgets/video_controls/widgets/video_controls_header.dart",
       "if (!kFireTvNoWatchTogether) Selector<WatchTogetherProvider")
 check("lib/widgets/video_controls/sheets/video_settings_sheet.dart",
       "if (!kFireTvNoWatchTogether)",
-      "if (context.watch<WatchTogetherProvider?>() case")
+      "if (context.watch<WatchTogetherProvider?>() case",
+      "if (kFireTvNoWatchTogether) return playerRate;")
 check("lib/widgets/video_controls/parts/playback_input.dart",
       "if (kFireTvNoWatchTogether) return false;")
 check("lib/screens/settings/settings_screen.dart",
