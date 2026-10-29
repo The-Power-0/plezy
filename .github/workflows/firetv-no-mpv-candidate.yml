@@ -77,6 +77,8 @@ jobs:
           cp .github/patches/check_firetv_startup_priority.py "$RUNNER_TEMP/check_firetv_startup_priority.py"
           cp .github/patches/apply_firetv_focus_index.py "$RUNNER_TEMP/apply_firetv_focus_index.py"
           cp .github/patches/check_firetv_focus_index.py "$RUNNER_TEMP/check_firetv_focus_index.py"
+          cp .github/patches/apply_firetv_no_music_restore.py "$RUNNER_TEMP/apply_firetv_no_music_restore.py"
+          cp .github/patches/check_firetv_no_music_restore.py "$RUNNER_TEMP/check_firetv_no_music_restore.py"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerPlugin.kt "$RUNNER_TEMP/ExoPlayerOnlyPlugin.kt"
           cp .github/patches/firetv_exoplayer_only/ExoPlayerOnlyPluginTest.kt "$RUNNER_TEMP/ExoPlayerOnlyPluginTest.kt"
           cp scripts/audit_firetv_source.py "$RUNNER_TEMP/audit_firetv_source.py"
@@ -99,6 +101,8 @@ jobs:
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_startup_priority.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_focus_index.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_focus_index.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_no_music_restore.py"
+          python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_music_restore.py"
           cp .github/patches/apply_legacy_shuffle.py "$RUNNER_TEMP/apply_legacy_shuffle.py"
           cp .github/patches/prepare_custom_source.sh "$RUNNER_TEMP/prepare_custom_source.sh"
           cp .github/patches/ha-shuffle.patch "$RUNNER_TEMP/ha-shuffle.patch"
@@ -146,6 +150,10 @@ jobs:
           cp "$RUNNER_TEMP/check_firetv_focus_index.py" scripts/check_firetv_focus_index.py
           python3 scripts/apply_firetv_focus_index.py
           python3 scripts/check_firetv_focus_index.py
+          cp "$RUNNER_TEMP/apply_firetv_no_music_restore.py" scripts/apply_firetv_no_music_restore.py
+          cp "$RUNNER_TEMP/check_firetv_no_music_restore.py" scripts/check_firetv_no_music_restore.py
+          python3 scripts/apply_firetv_no_music_restore.py
+          python3 scripts/check_firetv_no_music_restore.py
           if grep -R -n 'import com.edde746.plezy.mpv.\|import com.edde746.mpv.' android/app/src/main/kotlin/; then
             echo "ERROR: Kotlin source still imports a removed MPV player" >&2
             exit 1
@@ -246,7 +254,8 @@ jobs:
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_exoplayer_video_flag_test.dart
           flutter test test/services/firetv_build_flags_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
-          flutter analyze lib/focus/focusable_action_bar.dart \
+          flutter analyze lib/navigation/profile_session_screen.dart \
+            lib/focus/focusable_action_bar.dart \
             lib/main.dart lib/screens/main_screen.dart \
             lib/screens/libraries/tabs/library_browse_tab.dart \
             lib/screens/discover_screen.dart lib/watch_together/providers/watch_together_provider.dart \
