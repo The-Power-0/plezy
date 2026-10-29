@@ -140,8 +140,8 @@ change(sheet, "import '../../../watch_together/providers/watch_together_provider
        "import '../../../services/firetv_build_flags.dart';")
 change(sheet,
        "        if (context.watch<WatchTogetherProvider?>() case final watchTogether? when watchTogether.isInSession)",
-       "        if (!kFireTvNoWatchTogether &&\n"
-       "            context.watch<WatchTogetherProvider?>() case final watchTogether? when watchTogether.isInSession)")
+       "        if (!kFireTvNoWatchTogether)\n"
+       "          if (context.watch<WatchTogetherProvider?>() case final watchTogether? when watchTogether.isInSession)")
 
 controls = "lib/widgets/video_controls/parts/playback_input.dart"
 change(controls, "  bool _syncOwnsRate() {\n    try {",
