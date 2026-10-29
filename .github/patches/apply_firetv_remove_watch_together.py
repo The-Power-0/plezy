@@ -110,6 +110,20 @@ change(part, "  WatchTogetherProvider? _followedRoom() {\n",
        "    if (kFireTvNoWatchTogether) return null;\n")
 
 build = "lib/screens/video_player/parts/build.dart"
+change(build,
+       "                    try {\n"
+       "                      authority = context",
+       "                    if (!kFireTvNoWatchTogether) {\n"
+       "                      try {\n"
+       "                        authority = context")
+change(build,
+       "                      // Watch Together is optional outside the main app shell.\n"
+       "                    }\n"
+       "                    if (_lastMediaControlAuthority != authority) {",
+       "                      // Watch Together is optional outside the main app shell.\n"
+       "                      }\n"
+       "                    }\n"
+       "                    if (_lastMediaControlAuthority != authority) {")
 change(build, "              const VideoPlayerWatchTogetherOverlays(),",
        "              if (!kFireTvNoWatchTogether) const VideoPlayerWatchTogetherOverlays(),")
 
