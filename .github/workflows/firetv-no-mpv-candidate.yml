@@ -87,6 +87,9 @@ jobs:
           cp .github/patches/apply_firetv_remove_watch_together.py "$RUNNER_TEMP/apply_firetv_remove_watch_together.py"
           cp .github/patches/check_firetv_no_watch_together_source.py "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
           cp .github/patches/apply_firetv_no_plezy_remote.py "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
+          cp .github/patches/apply_firetv_home_navigation.py "$RUNNER_TEMP/apply_firetv_home_navigation.py"
+          cp .github/patches/firetv_validation/plex_server_prefs_coalescing_test.dart "$RUNNER_TEMP/plex_server_prefs_coalescing_test.dart"
+          cp .github/patches/firetv_validation/profile_home_navigation_test.dart "$RUNNER_TEMP/profile_home_navigation_test.dart"
           cp .github/patches/check_firetv_no_plezy_remote_source.py "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
           cp .github/patches/apply_firetv_library_index.py "$RUNNER_TEMP/apply_firetv_library_index.py"
           cp .github/patches/check_firetv_library_index.py "$RUNNER_TEMP/check_firetv_library_index.py"
@@ -121,6 +124,7 @@ jobs:
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_remove_watch_together.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_watch_together_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_no_plezy_remote.py"
+          python3 -m py_compile "$RUNNER_TEMP/apply_firetv_home_navigation.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py"
           python3 -m py_compile "$RUNNER_TEMP/apply_firetv_library_index.py"
           python3 -m py_compile "$RUNNER_TEMP/check_firetv_library_index.py"
@@ -175,6 +179,10 @@ jobs:
           cp "$RUNNER_TEMP/check_firetv_no_plezy_remote_source.py" scripts/check_firetv_no_plezy_remote_source.py
           python3 scripts/apply_firetv_no_plezy_remote.py
           python3 scripts/check_firetv_no_plezy_remote_source.py
+          cp "$RUNNER_TEMP/apply_firetv_home_navigation.py" scripts/apply_firetv_home_navigation.py
+          python3 scripts/apply_firetv_home_navigation.py
+          cp "$RUNNER_TEMP/plex_server_prefs_coalescing_test.dart" test/services/firetv_plex_server_prefs_coalescing_test.dart
+          cp "$RUNNER_TEMP/profile_home_navigation_test.dart" test/navigation/firetv_profile_home_navigation_test.dart
           cp "$RUNNER_TEMP/apply_firetv_library_index.py" scripts/apply_firetv_library_index.py
           cp "$RUNNER_TEMP/check_firetv_library_index.py" scripts/check_firetv_library_index.py
           python3 scripts/apply_firetv_library_index.py
@@ -249,7 +257,11 @@ jobs:
             "flutter build apk --release --target-platform android-arm --split-per-abi",
             "flutter build apk --release --target-platform android-arm --split-per-abi "
             "--dart-define=PLEZY_FIRETV_PLEX_ONLY=true "
+            "--dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true "
             "--dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true "
+            "--dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true "
+            "--dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true "
+            "--dart-define=PLEZY_FIRETV_NO_COMPANION_REMOTE=true "
             "--dart-define=PLEZY_HA_MANAGED_UPDATES=true",
           )
           t += "\nFire TV movies/TV edition: MPV player code removed from native runtime.\n"
@@ -311,7 +323,29 @@ jobs:
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_exoplayer_video_flag_test.dart
           flutter test test/services/firetv_build_flags_default_test.dart
           flutter test --dart-define=PLEZY_FIRETV_PLEX_ONLY=true --dart-define=PLEZY_HA_MANAGED_UPDATES=true test/services/firetv_build_flags_test.dart
-          flutter analyze lib/navigation/profile_session_screen.dart \
+          flutter test --concurrency=2 \
+            --dart-define=PLEZY_FIRETV_PLEX_ONLY=true \
+            --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true \
+            --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true \
+            --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true \
+            --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true \
+            --dart-define=PLEZY_FIRETV_NO_COMPANION_REMOTE=true \
+            --dart-define=PLEZY_HA_MANAGED_UPDATES=true \
+            test/services/firetv_plex_server_prefs_coalescing_test.dart \
+            test/navigation/firetv_profile_home_navigation_test.dart \
+            test/focus/focusable_action_bar_test.dart test/focus/key_event_utils_test.dart \
+            test/screens/libraries/library_browse_tab_test.dart \
+            test/screens/libraries/library_browse_grouping_test.dart \
+            test/services/plex_client_http_contract_test.dart test/services/plex_client_metadata_test.dart \
+            test/services/device_performance_test.dart \
+            test/mpv/player_android_rate_test.dart test/mpv/player_android_buffer_tier_test.dart \
+            test/mpv/player_android_subtitle_visibility_test.dart \
+            test/mpv/player_android_content_frame_rate_test.dart
+          flutter analyze lib/navigation/profile_navigation_scope.dart \
+            lib/services/plex_client.dart lib/services/device_performance.dart \
+            test/services/firetv_plex_server_prefs_coalescing_test.dart \
+            test/navigation/firetv_profile_home_navigation_test.dart \
+            lib/navigation/profile_session_screen.dart \
             lib/focus/focusable_action_bar.dart \
             lib/main.dart lib/screens/main_screen.dart \
             lib/screens/libraries/tabs/library_browse_tab.dart \
