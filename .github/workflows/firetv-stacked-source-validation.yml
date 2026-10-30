@@ -321,5 +321,5 @@ jobs:
         run: |
           set -euo pipefail
           cd android
-          ./gradlew :app:testReleaseUnitTest --tests '*ExoPlayerOnlyPluginTest' --no-daemon
+          ./gradlew :app:testDebugUnitTest --tests '*ExoPlayerOnlyPluginTest' -x :app:compileFlutterBuildDebug --no-daemon
 
