@@ -1,7 +1,8 @@
 name: Fire TV stacked source integration validation
 run-name: Validate unmerged Plezy optimization source overlays
 
-# Dedicated experimental branch. No APK compilation, signing, releases, or deployment.
+# Dedicated experimental branch: source overlays, Flutter checks and Android unit tests.
+# No APK compilation, signing, releases, or deployment.
 on:
   push:
     branches:
