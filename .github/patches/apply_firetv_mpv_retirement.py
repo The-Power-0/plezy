@@ -257,6 +257,23 @@ if host_text.count(osd_start_marker) != 1 or host_text.count(osd_end_marker) != 
 osd_start = host_text.index(osd_start_marker)
 osd_end = host_text.index(osd_end_marker, osd_start)
 host_text = host_text[:osd_start] + host_text[osd_end:]
+# Remove upstream documentation that refers to the now-deleted OSD plane.
+old_container_comment = (
+    "  /**\n"
+    "   * The black background is only ever visible where no below-window\n"
+    "   * SurfaceView punches the window: the GL-vo mpv paths, which hide the OSD\n"
+    "   * plane. With a full-size OSD/ASS plane in the container the whole player\n"
+    "   * is punched out of the window and the letterbox is that plane's pixels\n"
+    "   * instead; see [createOsdSurface].\n"
+    "   */"
+)
+if host_text.count(old_container_comment) != 1:
+    raise SystemExit("Unexpected shared video surface comment layout")
+host_text = host_text.replace(old_container_comment, "  /** Android video surface container with a black letterbox background. */")
+host_text = host_text.replace(
+    "/** Shared Android view scaffold beneath the ExoPlayer and mpv cores. */",
+    "/** Shared Android view scaffold for the ExoPlayer core. */",
+)
 for line in (
     "import android.graphics.PixelFormat\n",
     "import com.edde746.plezy.mpv.OsdPlanePolicy\n",
@@ -373,7 +390,9 @@ replace_one(
 
 # Stage B selection remains true and *only* video is supported on this target.
 # If a source refactor removes this guard in a later upstream version, fail.
-if "kFireTvForceExoVideo" not in Path(player).read_text(encoding="utf-8"):
-    raise SystemExit("Forced ExoPlayer player-factory guard missing")
+if "useExoPlayerForAndroidVideo(useExoPlayer ?? false)" not in Path(player).read_text(encoding="utf-8"):
+    raise SystemExit("Forced ExoPlayer player-factory helper call missing")
+if "kFireTvForceExoVideo" not in flag.read_text(encoding="utf-8"):
+    raise SystemExit("ExoPlayer force flag definition missing")
 print("Prepared Fire TV movies/TV only source: native MPV removed; Media3 FFmpeg retained.")
 print("NOT yet compiled. Source and compiled APK must be inspected before device installation.")

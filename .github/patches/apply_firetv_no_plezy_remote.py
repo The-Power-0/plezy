@@ -63,6 +63,7 @@ change(home,
        "            builder: (context, companionRemote, _) {",
        "          Builder(\n"
        "            builder: (context) {")
+change(home, "              final isDesktop = PlatformDetector.shouldActAsRemoteHost(context);\n", "")
 hf = Path(home)
 text = hf.read_text(encoding="utf-8")
 start = "              void openCompanionRemote() {\n"
