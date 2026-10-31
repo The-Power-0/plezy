@@ -1,0 +1,9 @@
+PUBLISH_POWERPLAY
+release_tag=powerplay-v1.0.0
+candidate_run=41249470717
+candidate_commit=c43d33a957df6d1cf295bfae5e3c711d3d56b3d9
+artifact_name=PowerPlay-v1.0.0-rc1-Candidate
+artifact_id=13061320986
+build_conclusion=success
+release_latest=false
+note=Existing Plezy latest release and Home Assistant automations remain unchanged until migration.
