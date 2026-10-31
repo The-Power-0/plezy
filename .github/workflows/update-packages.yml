@@ -1,8 +1,7 @@
 name: Update Packages
 
 on:
-  release:
-    types: [published]
+  # Package updates remain manual; PowerPlay ships Fire TV APKs only.
   workflow_dispatch:
     inputs:
       release_tag:
