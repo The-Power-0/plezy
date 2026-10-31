@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: powerplay-rc1
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   candidate:
@@ -67,6 +67,9 @@ jobs:
           test -s android/app/src/main/res/drawable-xhdpi/tv_banner.png
           grep -q 'applicationId = "com.power.powerplay"' android/app/build.gradle.kts
           grep -q 'android:scheme="powerplay"' android/app/src/main/AndroidManifest.xml
+          if grep -Eq 'android:(icon|banner)="@(mipmap/ic_launcher_|drawable/tv_banner_)' android/app/src/main/AndroidManifest.xml; then
+            echo "Legacy Plezy themed launcher assets still referenced" >&2; exit 1
+          fi
           if grep -q 'android:scheme="plezy"' android/app/src/main/AndroidManifest.xml; then exit 1; fi
           test -s POWERPLAY-RELEASE-NOTICE.md
           echo "Branding verified: approved purple PowerPlay launcher icon and TV banner." >> "$GITHUB_STEP_SUMMARY"
@@ -120,6 +123,7 @@ jobs:
           SDK_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           "$SDK_TOOLS/aapt" dump badging PowerPlay-v1.0.0-rc1.apk > apk-badging.txt
           grep -q "package: name='com.power.powerplay'" apk-badging.txt
+          grep -q "versionName='1.0.0'" apk-badging.txt
           "$SDK_TOOLS/apksigner" verify --min-sdk-version 28 --print-certs PowerPlay-v1.0.0-rc1.apk > signing.txt
           "$SDK_TOOLS/apksigner" verify --min-sdk-version 30 PowerPlay-v1.0.0-rc1.apk
           python3 - <<'PY'
