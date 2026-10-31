@@ -4,9 +4,8 @@ name: Build Custom Plezy Release
 run-name: Custom Plezy ${{ github.event.inputs.upstream_tag || 'latest upstream release' }}
 
 on:
-  schedule:
-    - cron: "17 * * * *"
-
+  # Disabled upstream polling for the independent PowerPlay fork.
+  # Legacy Plezy builds remain opt-in via workflow_dispatch.
   workflow_dispatch:
     inputs:
       upstream_tag:
