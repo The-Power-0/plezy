@@ -2,11 +2,6 @@ name: Publish PowerPlay v1.0.0
 
 # Promotion only: never rebuild or change Home Assistant.
 on:
-  push:
-    branches:
-      - ha-shuffle-v2
-    paths:
-      - .github/powerplay/publish-v1.0.0.request
   workflow_dispatch:
     inputs:
       candidate_run_id:
@@ -29,12 +24,12 @@ concurrency:
 
 jobs:
   publish:
-    if: (github.event_name == 'workflow_dispatch' && inputs.confirm == 'PUBLISH_POWERPLAY') || (github.event_name == 'push' && github.ref == 'refs/heads/ha-shuffle-v2')
+    if: inputs.confirm == 'PUBLISH_POWERPLAY'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
       GH_TOKEN: ${{ github.token }}
-      CANDIDATE_RUN_ID: ${{ github.event_name == 'push' && '41249470717' || inputs.candidate_run_id }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
       RELEASE_TAG: powerplay-v1.0.0
     steps:
       - name: Verify successful candidate provenance
