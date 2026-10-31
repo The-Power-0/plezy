@@ -1,0 +1,112 @@
+name: Publish PowerPlay v1.0.0
+
+# Promotion only: never rebuild or change Home Assistant.
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: 'Successful PowerPlay candidate Actions run ID'
+        required: true
+        type: string
+        default: '41249470717'
+      confirm:
+        description: 'Type PUBLISH_POWERPLAY to make a public GitHub Release'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: powerplay-publication-v1.0.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: inputs.confirm == 'PUBLISH_POWERPLAY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      RELEASE_TAG: powerplay-v1.0.0
+    steps:
+      - name: Verify successful candidate provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "Invalid run ID"; exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CANDIDATE_RUN_ID" > /tmp/powerplay-candidate.json
+          jq -e '
+            .status=="completed" and
+            .conclusion=="success" and
+            .head_branch=="release/powerplay-v1.0.0-rc1" and
+            .path==".github/workflows/powerplay-release-candidate.yml"
+          ' /tmp/powerplay-candidate.json
+          SOURCE_SHA="$(jq -r '.head_sha' /tmp/powerplay-candidate.json)"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+          echo "Promoting candidate run $CANDIDATE_RUN_ID at source $SOURCE_SHA"
+      - name: Download candidate APK and complete corresponding sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p candidate release
+          gh run download "$CANDIDATE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name PowerPlay-v1.0.0-rc1-Candidate --dir candidate
+          cd candidate
+          for asset in PowerPlay-v1.0.0-rc1.apk PowerPlay-v1.0.0-rc1-Source.tar.gz PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip; do
+            test -s "$asset"
+          done
+          sha256sum -c PowerPlay-v1.0.0-rc1.apk.sha256
+          sha256sum -c sources.sha256
+          tar -tzf PowerPlay-v1.0.0-rc1-Source.tar.gz | grep -Fx 'plezy-custom-source/LICENSE'
+          tar -tzf PowerPlay-v1.0.0-rc1-Source.tar.gz | grep -Fx 'plezy-custom-source/POWERPLAY-RELEASE-NOTICE.md'
+          tar -xOzf PowerPlay-v1.0.0-rc1-Source.tar.gz plezy-custom-source/pubspec.yaml | grep -q '^version: 1.0.0+10000$'
+          unzip -tq PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip >/dev/null
+          grep -q "name='com.power.powerplay'" apk-badging.txt
+          grep -q "versionName='1.0.0'" apk-badging.txt
+          grep -q '^PowerPlay Release Candidate' BUILD-STATUS.txt
+          cp PowerPlay-v1.0.0-rc1.apk ../release/PowerPlay-v1.0.0.apk
+          cp PowerPlay-v1.0.0-rc1-Source.tar.gz ../release/PowerPlay-v1.0.0-Source.tar.gz
+          cp PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip ../release/PowerPlay-v1.0.0-NativeSourceInputs.zip
+          cd ../release
+          sha256sum PowerPlay-v1.0.0.apk PowerPlay-v1.0.0-Source.tar.gz PowerPlay-v1.0.0-NativeSourceInputs.zip > SHA256SUMS.txt
+      - name: Publish public release with source and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists, refusing overwrite: $RELEASE_TAG"; exit 1
+          fi
+          cat > /tmp/powerplay-release-notes.md <<EOF
+          # PowerPlay v1.0.0 — Fire TV
+
+          Unofficial, GPLv3-licensed derivative of Plezy 2.25.0, optimized for Plex movies and TV on Fire OS 7/8.
+
+          - Independent Android application ID: \`com.power.powerplay\`
+          - Independent \`powerplay://\` shuffle and playback deep links, supporting side-by-side Plezy installation
+          - Approved purple PowerPlay icon, launcher variants, splash, and TV banner
+          - ARMv7 Android release APK, ExoPlayer/Media3-only video, no MPV runtime
+          - Includes the frozen Plex-only Fire TV optimizations from the tested candidate
+
+          **Files:** install \`PowerPlay-v1.0.0.apk\`. Complete modified application source is attached as \`PowerPlay-v1.0.0-Source.tar.gz\`; pinned native source inputs are in \`PowerPlay-v1.0.0-NativeSourceInputs.zip\`; hashes are in \`SHA256SUMS.txt\`. GitHub's automatic source archives are not the corresponding application build source.
+
+          Built from PowerPlay candidate [Actions run $CANDIDATE_RUN_ID](https://github.com/$GITHUB_REPOSITORY/actions/runs/$CANDIDATE_RUN_ID) with workflow commit \`$SOURCE_SHA\`. Original project: https://github.com/edde746/plezy. This project is not endorsed by Plezy, Plex, or Amazon.
+
+          Source attribution and license notices are included. Further transitive native-dependency source/license verification and similar-name research have been deferred and should not be considered complete.
+          EOF
+          gh release create "$RELEASE_TAG" \
+            release/PowerPlay-v1.0.0.apk \
+            release/PowerPlay-v1.0.0-Source.tar.gz \
+            release/PowerPlay-v1.0.0-NativeSourceInputs.zip \
+            release/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_SHA" \
+            --latest \
+            --title "PowerPlay v1.0.0 — Fire TV" \
+            --notes-file /tmp/powerplay-release-notes.md
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url,assets \
+            --jq '{url:.url,assets:[.assets[].name]}'
