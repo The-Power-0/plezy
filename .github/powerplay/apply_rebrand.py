@@ -20,7 +20,7 @@ def change(path, old, new):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--assets-b64", required=False)
+    parser.add_argument("--assets-b64", required=True)
     args = parser.parse_args()
 
     change("android/app/build.gradle.kts", 'applicationId = "com.edde746.plezy"', 'applicationId = "com.power.powerplay"')
@@ -76,27 +76,13 @@ def main():
         if t != s:
             p.write_text(t, encoding="utf-8")
 
-    if args.assets_b64:
-        raw = base64.b64decode(Path(args.assets_b64).read_text(encoding="ascii").strip(), validate=True)
-        with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
-            icon = Image.open(io.BytesIO(archive.extractfile("icon.webp").read())).convert("RGB")
-            banner = Image.open(io.BytesIO(archive.extractfile("banner.webp").read())).convert("RGB")
-    else:
-        from PIL import ImageDraw
-        icon = Image.new("RGB", (512, 512), "#070917")
-        d = ImageDraw.Draw(icon)
-        d.rounded_rectangle((62, 102, 450, 389), radius=36, outline="#af3cf5", width=24)
-        d.rectangle((241, 388, 272, 416), fill="#ad36ec")
-        d.rounded_rectangle((187, 411, 328, 429), radius=8, fill="#ad36ec")
-        d.rounded_rectangle((172, 164, 364, 334), radius=73, fill="#d833f7")
-        d.polygon([(172, 164), (172, 333), (144, 376), (195, 336)], fill="#9a25fb")
-        d.polygon([(229, 203), (229, 300), (315, 252)], fill="#070917")
-        banner = Image.new("RGB", (640, 360), "#070917")
-        banner.paste(icon.resize((290,290)), (6,35))
-        from PIL import ImageFont
-        d2 = ImageDraw.Draw(banner)
-        d2.text((300,155), "PowerPlay", fill="#ecb9fb", font=ImageFont.load_default(size=52))
-        print("WARNING: placeholder artwork; replace with approved logo before public release.")
+    raw = base64.b64decode(Path(args.assets_b64).read_text(encoding="ascii").strip(), validate=True)
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+        assert sorted(archive.getnames()) == ["banner.webp", "icon.webp"]
+        icon = Image.open(io.BytesIO(archive.extractfile("icon.webp").read())).convert("RGB")
+        banner = Image.open(io.BytesIO(archive.extractfile("banner.webp").read())).convert("RGB")
+    assert icon.size == (256, 256), f"Unexpected artwork icon dimensions: {icon.size}"
+    assert banner.size == (320, 180), f"Unexpected artwork banner dimensions: {banner.size}"
     resources = ROOT / "android/app/src/main/res"
     def save(path, image):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,7 +101,7 @@ def main():
         "powerplay:// deep links, independent content provider authorities, and PowerPlay artwork.\n"
         "Original license and copyright notices are retained. This project is not affiliated "
         "with Plex, Plezy, or Amazon.\n", encoding="utf-8")
-    print("PowerPlay identity and logo installed; Plezy platform-channel names retained.")
+    print("Approved PowerPlay purple TV artwork installed; Plezy platform-channel names retained.")
 
 if __name__ == "__main__":
     main()
