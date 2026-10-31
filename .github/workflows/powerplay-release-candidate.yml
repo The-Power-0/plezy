@@ -59,12 +59,17 @@ jobs:
           set -euo pipefail
           python3 -m pip install --user Pillow==11.3.0
           cd "$RUNNER_TEMP/powerplay/plezy-custom-source"
-          python3 "$GITHUB_WORKSPACE/.github/powerplay/apply_rebrand.py"
+          ARTWORK="$GITHUB_WORKSPACE/.github/powerplay/approved-artwork.tar.gz.b64"
+          base64 --decode "$ARTWORK" > "$RUNNER_TEMP/powerplay-approved-artwork.tar.gz"
+          echo "ddba1c9518aa6a0adff8b3a4a7f82defb384db8a149a94ebe4c9ec2448c18252  $RUNNER_TEMP/powerplay-approved-artwork.tar.gz" | sha256sum -c -
+          python3 "$GITHUB_WORKSPACE/.github/powerplay/apply_rebrand.py" --assets-b64 "$ARTWORK"
+          test -s android/app/src/main/res/drawable-nodpi/powerplay_foreground.png
+          test -s android/app/src/main/res/drawable-xhdpi/tv_banner.png
           grep -q 'applicationId = "com.power.powerplay"' android/app/build.gradle.kts
           grep -q 'android:scheme="powerplay"' android/app/src/main/AndroidManifest.xml
           if grep -q 'android:scheme="plezy"' android/app/src/main/AndroidManifest.xml; then exit 1; fi
           test -s POWERPLAY-RELEASE-NOTICE.md
-          echo "NOTICE: icon is a temporary approximation; do not publish a final public release." >> "$GITHUB_STEP_SUMMARY"
+          echo "Branding verified: approved purple PowerPlay launcher icon and TV banner." >> "$GITHUB_STEP_SUMMARY"
       - name: Resolve and test
         shell: bash
         run: |
@@ -134,14 +139,17 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/powerplay"
-          tar -czf "$GITHUB_WORKSPACE/powerplay-release/PowerPlay-v1.0.0-rc1-Source.tar.gz" plezy-custom-source \
-            --exclude=plezy-custom-source/build \
-            --exclude=plezy-custom-source/.dart_tool \
-            --exclude=plezy-custom-source/android/key.properties
+          tar -czf "$GITHUB_WORKSPACE/powerplay-release/PowerPlay-v1.0.0-rc1-Source.tar.gz" \
+            --exclude='plezy-custom-source/build' \
+            --exclude='plezy-custom-source/.dart_tool' \
+            --exclude='plezy-custom-source/android/.gradle' \
+            --exclude='plezy-custom-source/android/app/build' \
+            --exclude='plezy-custom-source/android/key.properties' \
+            plezy-custom-source
           cp native-source-inputs.zip "$GITHUB_WORKSPACE/powerplay-release/PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip"
           cd "$GITHUB_WORKSPACE/powerplay-release"
           sha256sum PowerPlay-v1.0.0-rc1-Source.tar.gz PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip > sources.sha256
-          printf '%s\n' 'PowerPlay Release Candidate' 'Based on tested artifact run 41155352066' 'Unverified on Fire OS 7 and 8; placeholder artwork.' 'NOT A PUBLIC RELEASE YET.' > BUILD-STATUS.txt
+          printf '%s\n' 'PowerPlay Release Candidate' 'Based on tested artifact run 41155352066' 'Approved purple PowerPlay artwork embedded; Fire OS 7 and 8 device validation pending.' 'NOT A PUBLIC RELEASE YET.' > BUILD-STATUS.txt
       - name: Upload signed candidate for review (no public release)
         uses: actions/upload-artifact@v4
         with:
