@@ -24,6 +24,8 @@ def main():
     args = parser.parse_args()
 
     change("android/app/build.gradle.kts", 'applicationId = "com.edde746.plezy"', 'applicationId = "com.power.powerplay"')
+    # Release identity is independent of the Plezy upstream version number.
+    change("pubspec.yaml", "version: 2.25.0+157", "version: 1.0.0+10000")
     manifest = ROOT / "android/app/src/main/AndroidManifest.xml"
     s = manifest.read_text(encoding="utf-8")
     assert s.count('android:label="Plezy"') == 1
