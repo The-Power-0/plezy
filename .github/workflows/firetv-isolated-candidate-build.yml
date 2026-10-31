@@ -248,10 +248,13 @@ jobs:
           git diff --cached --check
           git commit -m "perf: Plex-only Home Assistant Fire TV code paths"
           python3 - <<'PY'
+          import os
           from pathlib import Path
           p = Path("BUILDING-CUSTOM-FIRE-TV.md")
           t = p.read_text()
           changes = {
+            "Modified corresponding source for this release;": "Modified Plezy application source for this test candidate;",
+            "Flutter 3.47.0": "Flutter " + os.environ["FLUTTER_VERSION"],
             "flutter build apk --debug --split-per-abi": "flutter build apk --release --target-platform android-arm --split-per-abi",
             "app-armeabi-v7a-debug.apk": "app-armeabi-v7a-release.apk",
           }
@@ -273,6 +276,8 @@ jobs:
           t += "\nFire TV movies/TV edition: MPV player code removed from native runtime.\n"
           t += "Plex music playback is unsupported; ExoPlayer retains FFmpeg audio decoders.\n"
           t += "The build uses checksum-pinned mpv-android AAR as a BUILD-TIME FFmpeg source only.\n"
+          t += "The separately supplied NativeSourceInputs.zip contains pinned FFmpeg build inputs and their source revisions.\n"
+          t += "The native input bundle has not yet been audited for completeness of all transitive third-party source.\n"
           t += "It also sets --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true and --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true.\n"
           t += "This candidate adds --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true; local Plex Home remains.\n"
           t += "Discord Rich Presence and dart_discord_presence are removed at source/pre-build; normal Plex watched state remains.\n"
