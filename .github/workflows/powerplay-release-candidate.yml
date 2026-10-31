@@ -1,0 +1,157 @@
+name: PowerPlay Fire TV Release Candidate
+run-name: PowerPlay v1.0.0-rc1 — frozen optimized Plezy source
+
+on:
+  push:
+    branches:
+      - release/powerplay-v1.0.0-rc1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: powerplay-rc1
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      FLUTTER_VERSION: '3.47.9'
+      CANDIDATE_RUN_ID: '41155352066'
+      EXPECTED_BASELINE_SHA256: '9a4a0cb6abc86be344105b3e3b156f7cb49edd674648b6843ab212abb7b521bf'
+    steps:
+      - name: Checkout release machinery
+        uses: actions/checkout@v5
+      - name: Restore EXACT tested build source and native-source archive
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/frozen" "$RUNNER_TEMP/powerplay"
+          gh run download "$CANDIDATE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name Plezy-FireTV-NoMPV-Optimized-Test --dir "$RUNNER_TEMP/frozen"
+          cd "$RUNNER_TEMP/frozen"
+          echo "$EXPECTED_BASELINE_SHA256  Plezy-FireTV-NoMPV-ReleaseCandidate.apk" | sha256sum -c -
+          sha256sum -c Plezy-FireTV-NoMPV-ReleaseCandidate-Source.tar.gz.sha256
+          sha256sum -c Plezy-FireTV-NoMPV-NativeSourceInputs.zip.sha256
+          tar -xzf Plezy-FireTV-NoMPV-ReleaseCandidate-Source.tar.gz -C "$RUNNER_TEMP/powerplay"
+          test -s "$RUNNER_TEMP/powerplay/plezy-custom-source/LICENSE"
+          cp Plezy-FireTV-NoMPV-NativeSourceInputs.zip "$RUNNER_TEMP/powerplay/native-source-inputs.zip"
+          echo "FROZEN_BASELINE_SHA256=$EXPECTED_BASELINE_SHA256" >> "$GITHUB_ENV"
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Brand frozen source without touching existing Plezy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user Pillow==11.3.0
+          cd "$RUNNER_TEMP/powerplay/plezy-custom-source"
+          python3 "$GITHUB_WORKSPACE/.github/powerplay/apply_rebrand.py"
+          grep -q 'applicationId = "com.power.powerplay"' android/app/build.gradle.kts
+          grep -q 'android:scheme="powerplay"' android/app/src/main/AndroidManifest.xml
+          if grep -q 'android:scheme="plezy"' android/app/src/main/AndroidManifest.xml; then exit 1; fi
+          test -s POWERPLAY-RELEASE-NOTICE.md
+          echo "NOTICE: icon is a temporary approximation; do not publish a final public release." >> "$GITHUB_STEP_SUMMARY"
+      - name: Resolve and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/powerplay/plezy-custom-source"
+          flutter pub get
+          flutter test test/services/deep_links/legacy_shuffle_link_test.dart
+          flutter test test/services/deep_links/deep_link_test.dart
+      - name: Configure existing Fire TV test signing secret
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PLEZY_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${KEYSTORE_BASE64:-}" || { echo "Missing PLEZY_KEYSTORE_BASE64 secret"; exit 1; }
+          mkdir -p "$HOME/.android"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/powerplay.keystore"
+          chmod 600 "$HOME/.android/powerplay.keystore"
+          keytool -list -keystore "$HOME/.android/powerplay.keystore" -storepass android -alias androiddebugkey >/dev/null
+          cd "$RUNNER_TEMP/powerplay/plezy-custom-source"
+          cat > android/key.properties <<EOF
+          storePassword=android
+          keyPassword=android
+          keyAlias=androiddebugkey
+          storeFile=$HOME/.android/powerplay.keystore
+          EOF
+          chmod 600 android/key.properties
+      - name: Compile optimized PowerPlay ARMv7 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/powerplay/plezy-custom-source"
+          flutter build apk --release --target-platform android-arm --split-per-abi \
+            --dart-define=PLEZY_FIRETV_PLEX_ONLY=true \
+            --dart-define=PLEZY_FIRETV_FORCE_EXO_VIDEO=true \
+            --dart-define=PLEZY_FIRETV_MOVIES_TV_ONLY=true \
+            --dart-define=PLEZY_FIRETV_NO_EXTERNAL_SERVICES=true \
+            --dart-define=PLEZY_FIRETV_NO_WATCH_TOGETHER=true \
+            --dart-define=PLEZY_FIRETV_NO_COMPANION_REMOTE=true \
+            --dart-define=PLEZY_HA_MANAGED_UPDATES=true
+          mkdir -p "$GITHUB_WORKSPACE/powerplay-release"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "$GITHUB_WORKSPACE/powerplay-release/PowerPlay-v1.0.0-rc1.apk"
+      - name: Check actual APK identity, ABI, signing, and MPV absence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/powerplay-release"
+          SDK_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$SDK_TOOLS/aapt" dump badging PowerPlay-v1.0.0-rc1.apk > apk-badging.txt
+          grep -q "package: name='com.power.powerplay'" apk-badging.txt
+          "$SDK_TOOLS/apksigner" verify --min-sdk-version 28 --print-certs PowerPlay-v1.0.0-rc1.apk > signing.txt
+          "$SDK_TOOLS/apksigner" verify --min-sdk-version 30 PowerPlay-v1.0.0-rc1.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          with ZipFile("PowerPlay-v1.0.0-rc1.apk") as a:
+              ns=a.namelist()
+              abis={p.split("/")[1] for p in ns if p.startswith("lib/") and p.endswith(".so")}
+              assert abis=={"armeabi-v7a"}, abis
+              assert "lib/armeabi-v7a/libflutter.so" in ns
+              assert "lib/armeabi-v7a/libapp.so" in ns
+              assert any(p.endswith("libffmpegJNI.so") for p in ns)
+              assert not any("mpv" in p.lower() and p.endswith(".so") for p in ns)
+          PY
+          sha256sum PowerPlay-v1.0.0-rc1.apk > PowerPlay-v1.0.0-rc1.apk.sha256
+      - name: Archive corresponding source and source inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/powerplay"
+          tar -czf "$GITHUB_WORKSPACE/powerplay-release/PowerPlay-v1.0.0-rc1-Source.tar.gz" plezy-custom-source \
+            --exclude=plezy-custom-source/build \
+            --exclude=plezy-custom-source/.dart_tool \
+            --exclude=plezy-custom-source/android/key.properties
+          cp native-source-inputs.zip "$GITHUB_WORKSPACE/powerplay-release/PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip"
+          cd "$GITHUB_WORKSPACE/powerplay-release"
+          sha256sum PowerPlay-v1.0.0-rc1-Source.tar.gz PowerPlay-v1.0.0-rc1-NativeSourceInputs.zip > sources.sha256
+          printf '%s\n' 'PowerPlay Release Candidate' 'Based on tested artifact run 41155352066' 'Unverified on Fire OS 7 and 8; placeholder artwork.' 'NOT A PUBLIC RELEASE YET.' > BUILD-STATUS.txt
+      - name: Upload signed candidate for review (no public release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerPlay-v1.0.0-rc1-Candidate
+          path: powerplay-release/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Delete signing credentials
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$HOME/.android/powerplay.keystore" "$RUNNER_TEMP/powerplay/plezy-custom-source/android/key.properties"
