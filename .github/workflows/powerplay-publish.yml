@@ -2,6 +2,11 @@ name: Publish PowerPlay v1.0.0
 
 # Promotion only: never rebuild or change Home Assistant.
 on:
+  push:
+    branches:
+      - ha-shuffle-v2
+    paths:
+      - .github/powerplay/publish-v1.0.0.request
   workflow_dispatch:
     inputs:
       candidate_run_id:
@@ -24,12 +29,12 @@ concurrency:
 
 jobs:
   publish:
-    if: inputs.confirm == 'PUBLISH_POWERPLAY'
+    if: (github.event_name == 'workflow_dispatch' && inputs.confirm == 'PUBLISH_POWERPLAY') || (github.event_name == 'push' && github.ref == 'refs/heads/ha-shuffle-v2')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
       GH_TOKEN: ${{ github.token }}
-      CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+      CANDIDATE_RUN_ID: ${{ github.event_name == 'push' && '41249470717' || inputs.candidate_run_id }}
       RELEASE_TAG: powerplay-v1.0.0
     steps:
       - name: Verify successful candidate provenance
@@ -97,6 +102,8 @@ jobs:
           Built from PowerPlay candidate [Actions run $CANDIDATE_RUN_ID](https://github.com/$GITHUB_REPOSITORY/actions/runs/$CANDIDATE_RUN_ID) with workflow commit \`$SOURCE_SHA\`. Original project: https://github.com/edde746/plezy. This project is not endorsed by Plezy, Plex, or Amazon.
 
           Source attribution and license notices are included. Further transitive native-dependency source/license verification and similar-name research have been deferred and should not be considered complete.
+
+          CI checks passed; physical Fire OS 7/8 installation, playback and deep-link behavior of this rebranded APK have not yet been verified. This is a first public version, not a claim of complete device or licensing validation.
           EOF
           gh release create "$RELEASE_TAG" \
             release/PowerPlay-v1.0.0.apk \
@@ -105,7 +112,7 @@ jobs:
             release/SHA256SUMS.txt \
             --repo "$GITHUB_REPOSITORY" \
             --target "$SOURCE_SHA" \
-            --latest \
+            --latest=false \
             --title "PowerPlay v1.0.0 — Fire TV" \
             --notes-file /tmp/powerplay-release-notes.md
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url,assets \
