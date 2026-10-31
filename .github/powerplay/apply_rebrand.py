@@ -34,6 +34,10 @@ def main():
     assert n > 5, "Component names need explicit original Kotlin namespace"
     s = s.replace("com.edde746.plezy.fileprovider", "com.power.powerplay.fileprovider")
     s = s.replace("com.edde746.plezy.systemshelf.artwork", "com.power.powerplay.systemshelf.artwork")
+    # All switchable Android launcher aliases must use PowerPlay art, too.
+    s, icon_count = re.subn(r'android:icon="@mipmap/ic_launcher_[^"]+"', 'android:icon="@mipmap/ic_launcher"', s)
+    s, banner_count = re.subn(r'android:banner="@drawable/tv_banner_[^"]+"', 'android:banner="@drawable/tv_banner"', s)
+    assert icon_count >= 20 and banner_count >= 20, (icon_count, banner_count)
     manifest.write_text(s, encoding="utf-8")
     changes = {
         "android/app/src/main/kotlin/com/edde746/plezy/ExternalPlayerChannel.kt": [
@@ -52,7 +56,11 @@ def main():
         "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml": [
             ("@drawable/ic_launcher_foreground", "@drawable/powerplay_foreground")],
         "android/app/src/main/res/values/colors.xml": [
-            ('name="ic_launcher_background">#ffffff', 'name="ic_launcher_background">#060810')],
+            ('name="ic_launcher_background">#ffffff', 'name="ic_launcher_background">#070917'),
+            ('name="splash_background">#F7F7F8', 'name="splash_background">#070917'),
+            ('name="splash_light">#F7F7F8', 'name="splash_light">#070917')],
+        "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml": [
+            ('  <monochrome android:drawable="@drawable/ic_launcher_monochrome" />', '')],
     }
     for path, pairs in changes.items():
         for old, new in pairs:
