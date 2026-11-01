@@ -88,3 +88,7 @@ The rule uses Amazon's documented Fire Stick model identifiers and the native Fi
 The reviewed `.github/powerplay/library-defaults.patch` is applied after the 1.1.0 defaults/branding patch. The candidate workflow tests device classification, the four-library example, explicit overrides, reloads, profile/server isolation, new libraries, renames, and existing library/navigation behavior before building the APK.
 
 The base Flutter build number for 1.1.1 is 10101; Flutter's ARMv7 split adds 1000, producing Android `versionCode=11101`, one above 1.1.0. CI checks that actual APK version code.
+
+## Historical releases and pull requests
+
+Pre-PowerPlay releases and superseded optimization PRs are recorded in the [pre-PowerPlay archive](docs/archive/README.md). The archived Plezy 2.25.0 rollback APK remains publicly downloadable at its existing URL for Home Assistant compatibility. PowerPlay 1.0.0 and later releases remain available; 1.1.1 is Latest.

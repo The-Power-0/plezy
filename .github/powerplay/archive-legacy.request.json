@@ -1,0 +1,5 @@
+{
+  "confirm": "ARCHIVE_PRE_POWERPLAY_RELEASES",
+  "cutoff_tag": "powerplay-v1.0.0",
+  "release_ids": [426120487, 420231511, 410021085, 405415814]
+}
