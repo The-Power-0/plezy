@@ -35,6 +35,7 @@ import '../models/audio_channel_limit.dart';
 import '../models/audio_quality_preset.dart';
 import '../models/transcode_quality_preset.dart';
 import '../navigation/navigation_tabs.dart';
+import '../theme/powerplay_palette.dart';
 import '../utils/platform_detector.dart';
 import 'trackers/tracker_constants.dart';
 import '../profiles/profile.dart';
@@ -890,6 +891,13 @@ class SettingsService extends BaseSharedPreferencesService {
     'theme_mode',
     values: ThemeMode.values,
     defaultValueProvider: _tvAwareThemeModeDefault,
+  );
+  /// Stored independently from light/dark/OLED so each palette supports all
+  /// appearance modes. Preserve the current visual style on existing installs.
+  static const colorPalette = EnumPref<PowerPlayPalette>(
+    'color_palette',
+    values: PowerPlayPalette.values,
+    defaultValue: PowerPlayPalette.monochrome,
   );
   static const videoPlayerNavigationEnabled = BoolPref(
     'video_player_navigation_enabled',
