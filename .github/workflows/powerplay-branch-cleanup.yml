@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  pull-requests: read
 concurrency:
   group: powerplay-branch-archive
   cancel-in-progress: false

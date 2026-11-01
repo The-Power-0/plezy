@@ -20,7 +20,7 @@ def api(path, method='GET', payload=None, missing_ok=False):
     data = None if payload is None else json.dumps(payload).encode()
     if data is not None:
         headers['Content-Type'] = 'application/json'
-    request = urllib.request.Request(f'https://api.github.com/repos/{REPO}/{path}',
+    request = urllib.request.Request(f'https://api.github.com/repos/{REPO}' + ('/' + path if path else ''),
                                      headers=headers, data=data, method=method)
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
