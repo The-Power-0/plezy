@@ -32,7 +32,10 @@ ManagedHttpClient _createIoClient(String debugLabel) {
   final httpClient = HttpClient()
     ..connectionTimeout = MediaServerTimeouts.connect
     ..maxConnectionsPerHost = 12
-    ..idleTimeout = const Duration(seconds: 90)
+    // Plex advertises a 20s keep-alive but may leave a stale TLS socket
+    // in the pool briefly afterward. Retire it first to avoid broken artwork
+    // requests on resumed and intermittently used Fire TV clients.
+    ..idleTimeout = const Duration(seconds: 15)
     ..connectionFactory = happyEyeballsConnectionFactory;
   return ManagedHttpClient(IOClient(httpClient), debugLabel: debugLabel, forceCloseOnDrainTimeout: true);
 }
