@@ -84,3 +84,5 @@ On 1080p-only Fire Sticks, including Stick Lite, library names containing `[4K]`
 The rule uses Amazon's documented Fire Stick model identifiers and the native Fire TV feature, not Flutter's UI resolution, display size, RAM, or decoder capability. Unknown models keep libraries visible. Use the existing library visibility controls to override the default; explicit Show choices persist per profile on the device, and saved Hide choices remain authoritative. Automatic hiding is derived from library names and is not exported as a user preference.
 
 The reviewed `.github/powerplay/library-defaults.patch` is applied after the 1.1.0 defaults/branding patch. The candidate workflow tests device classification, the four-library example, explicit overrides, reloads, profile/server isolation, new libraries, renames, and existing library/navigation behavior before building the APK.
+
+The base Flutter build number for 1.1.1 is 10101; Flutter's ARMv7 split adds 1000, producing Android `versionCode=11101`, one above 1.1.0. CI checks that actual APK version code.

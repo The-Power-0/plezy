@@ -132,6 +132,9 @@ jobs:
           "$SDK_TOOLS/aapt" dump badging PowerPlay-v$RELEASE_VERSION-rc1.apk > apk-badging.txt
           grep -q "package: name='com.power.powerplay'" apk-badging.txt
           grep -q "versionName='$RELEASE_VERSION'" apk-badging.txt
+          # Flutter adds the armeabi-v7a ABI offset (1000) to the base build number.
+          EXPECTED_APK_VERSION_CODE=$((BUILD_NUMBER + 1000))
+          grep -q "versionCode='$EXPECTED_APK_VERSION_CODE'" apk-badging.txt
           "$SDK_TOOLS/apksigner" verify --min-sdk-version 28 --print-certs PowerPlay-v$RELEASE_VERSION-rc1.apk > signing.txt
           "$SDK_TOOLS/apksigner" verify --min-sdk-version 30 PowerPlay-v$RELEASE_VERSION-rc1.apk
           python3 - <<'PY'
