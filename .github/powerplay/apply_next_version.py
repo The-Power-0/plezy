@@ -29,12 +29,15 @@ def main():
     # source directory, which need not be a Git working tree.
     subprocess.run(['git', 'apply', '--check', patch], cwd=source, check=True)
     subprocess.run(['git', 'apply', patch], cwd=source, check=True)
+    feature_patch = str(machinery / 'library-defaults.patch')
+    subprocess.run(['git', 'apply', '--check', feature_patch], cwd=source, check=True)
+    subprocess.run(['git', 'apply', feature_patch], cwd=source, check=True)
     shutil.copyfile(source / 'assets/plezy.png', source / 'assets/powerplay.png')
     updated = pubspec.read_text().replace('version: 1.0.0+10000', f'version: {version}+{number}')
     updated = updated.replace('description: "A beautiful Plex and Jellyfin client for Flutter"',
                               'description: "PowerPlay: a Plex client for Fire TV"')
     pubspec.write_text(updated)
-    print(f'Applied PowerPlay {version}+{number}: defaults, splash, adaptive icon, About, and regression tests')
+    print(f'Applied PowerPlay {version}+{number}: defaults, branding, and hardware-aware library visibility')
 
 
 if __name__ == '__main__':

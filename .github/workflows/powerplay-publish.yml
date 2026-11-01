@@ -18,7 +18,7 @@ on:
         description: 'Stable version: patch +0.0.1 for a feature; minor +0.1.0 for a full batch'
         required: true
         type: string
-        default: '1.1.0'
+        default: '1.1.1'
       confirm:
         description: 'Type PUBLISH_POWERPLAY to publish the candidate as the Latest stable release'
         required: true
@@ -131,13 +131,13 @@ jobs:
 
           Unofficial GPLv3-licensed Plezy derivative, optimized for Plex movies and TV on Fire OS 7/8.
 
-          - Continue Watching and Episode Action default to **Open Details**.
-          - Match Content Frame Rate defaults to **On**.
-          - Skip Intro defaults to **Automatic**, with an auto-skip delay of **3 seconds**.
-          - PowerPlay branding on both the Android launch screen and Flutter startup screen, including adaptive icons.
-          - Updated About screen with PowerPlay identity, version, project URL, and Plezy/GPL attribution.
-          - Existing saved settings are preserved. New defaults apply to unset settings; the existing Reset All Settings policy is preserved.
-          - Stable PowerPlay releases are explicitly marked **Latest**. Individual feature releases increment the patch version; full batches increment the minor version and reset the patch to zero.
+          - On known 1080p-only Fire Sticks (including Stick Lite), libraries whose name contains \`[4K]\` are hidden by default.
+          - 4K-capable Fire Sticks keep those libraries visible by default, including when their current UI or HDMI mode is 1080p.
+          - Existing library controls let you show an automatically hidden library. That choice persists separately for each profile on that device.
+          - Automatic defaults are not saved into the portable hidden-library list. Newly connected libraries receive the same defaults; removing \`[4K]\` from a name removes only the automatic hiding.
+          - Unknown hardware keeps libraries visible. Explicitly saved Hide choices are preserved.
+          - Includes the PowerPlay 1.1.0 settings defaults, startup branding, and About updates.
+          - Single-feature release: patch increment to 1.1.1. All stable publications are explicitly marked Latest.
 
           Application ID: \`com.power.powerplay\`. Deep links: \`powerplay://\`. Playback: ExoPlayer/Media3; ARMv7 Fire TV APK with the tested Fire TV optimizations retained.
 

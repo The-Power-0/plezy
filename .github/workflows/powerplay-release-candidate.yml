@@ -78,13 +78,14 @@ jobs:
             --source "$RUNNER_TEMP/powerplay/plezy-custom-source"
           python3 "$GITHUB_WORKSPACE/.github/powerplay/check_next_version.py" \
             --source "$RUNNER_TEMP/powerplay/plezy-custom-source"
-          echo "PowerPlay $RELEASE_VERSION: new defaults, native and Flutter splash, and About verified." >> "$GITHUB_STEP_SUMMARY"
+          echo "PowerPlay $RELEASE_VERSION: defaults, branding, and hardware-aware library visibility applied." >> "$GITHUB_STEP_SUMMARY"
       - name: Resolve and test
         shell: bash
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/powerplay/plezy-custom-source"
           flutter pub get
+          flutter test test/providers/fire_tv_library_defaults_test.dart test/providers/hidden_libraries_provider_test.dart test/providers/libraries_provider_test.dart test/utils/platform_detector_test.dart test/widgets/library_management_sheet_test.dart test/navigation/profile_session_screen_test.dart test/services/storage_service_test.dart
           flutter test test/services/powerplay_defaults_test.dart test/services/settings_service_test.dart test/services/settings_export_service_test.dart
           flutter test test/services/deep_links/legacy_shuffle_link_test.dart
           flutter test test/services/deep_links/deep_link_test.dart
@@ -131,6 +132,9 @@ jobs:
           "$SDK_TOOLS/aapt" dump badging PowerPlay-v$RELEASE_VERSION-rc1.apk > apk-badging.txt
           grep -q "package: name='com.power.powerplay'" apk-badging.txt
           grep -q "versionName='$RELEASE_VERSION'" apk-badging.txt
+          # Flutter adds the armeabi-v7a ABI offset (1000) to the base build number.
+          EXPECTED_APK_VERSION_CODE=$((BUILD_NUMBER + 1000))
+          grep -q "versionCode='$EXPECTED_APK_VERSION_CODE'" apk-badging.txt
           "$SDK_TOOLS/apksigner" verify --min-sdk-version 28 --print-certs PowerPlay-v$RELEASE_VERSION-rc1.apk > signing.txt
           "$SDK_TOOLS/apksigner" verify --min-sdk-version 30 PowerPlay-v$RELEASE_VERSION-rc1.apk
           python3 - <<'PY'

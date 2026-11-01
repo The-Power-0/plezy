@@ -76,3 +76,13 @@ The current focus is **Fire OS 7 and 8**, ARMv7, Plex movies and TV, and Home As
 ### Current release: PowerPlay 1.1.0
 
 Continue Watching and Episode Action default to Open Details; Match Content Frame Rate defaults on; Skip Intro defaults to Automatic with a 3-second delay. Both startup screens and the About page use PowerPlay branding. Existing saved settings remain authoritative; the defaults apply to unset preferences. The existing Reset All Settings policy is preserved, including saved intro mode and delay. Skip Credits keeps its existing default.
+
+### Next feature: PowerPlay 1.1.1
+
+On 1080p-only Fire Sticks, including Stick Lite, library names containing `[4K]` start hidden. For example, `Movies` and `TV Shows` remain visible, while `Movies [4K]` and `TV Shows [4K]` start hidden. A 4K-capable stick keeps all four visible by default even when its current output mode is 1080p.
+
+The rule uses Amazon's documented Fire Stick model identifiers and the native Fire TV feature, not Flutter's UI resolution, display size, RAM, or decoder capability. Unknown models keep libraries visible. Use the existing library visibility controls to override the default; explicit Show choices persist per profile on the device, and saved Hide choices remain authoritative. Automatic hiding is derived from library names and is not exported as a user preference.
+
+The reviewed `.github/powerplay/library-defaults.patch` is applied after the 1.1.0 defaults/branding patch. The candidate workflow tests device classification, the four-library example, explicit overrides, reloads, profile/server isolation, new libraries, renames, and existing library/navigation behavior before building the APK.
+
+The base Flutter build number for 1.1.1 is 10101; Flutter's ARMv7 split adds 1000, producing Android `versionCode=11101`, one above 1.1.0. CI checks that actual APK version code.
