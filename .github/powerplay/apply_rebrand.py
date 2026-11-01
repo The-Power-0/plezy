@@ -56,13 +56,12 @@ def main():
         "android/app/src/main/res/drawable/splash_icon.xml": [
             ("@drawable/ic_launcher_foreground", "@drawable/powerplay_foreground")],
         "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml": [
-            ("@drawable/ic_launcher_foreground", "@drawable/powerplay_foreground")],
+            ("@drawable/ic_launcher_foreground", "@drawable/powerplay_foreground"),
+            ('  <monochrome android:drawable="@drawable/ic_launcher_monochrome" />', '')],
         "android/app/src/main/res/values/colors.xml": [
             ('name="ic_launcher_background">#ffffff', 'name="ic_launcher_background">#070917'),
             ('name="splash_background">#F7F7F8', 'name="splash_background">#070917'),
             ('name="splash_light">#F7F7F8', 'name="splash_light">#070917')],
-        "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml": [
-            ('  <monochrome android:drawable="@drawable/ic_launcher_monochrome" />', '')],
     }
     for path, pairs in changes.items():
         for old, new in pairs:
