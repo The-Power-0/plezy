@@ -61,96 +61,38 @@ Library hiding is a **default, not a restriction**: users can manually show a hi
 
 PowerPlay's published builds target **Amazon Fire OS 7 and 8**, with a signed **32-bit ARM (`armeabi-v7a`) APK**, and are designed primarily for Fire TV Stick hardware. The published build workflow performs APK, signing, version-code, deep-link and playback-runtime checks. Those automated checks **do not replace physical-device playback testing**; review each release's notes for validation details.
 
-## Home Assistant automations
+## Smart home integration
 
-PowerPlay accepts Android VIEW intents. Its identity is:
+PowerPlay is designed to work with external automation systems, including **Home Assistant**. It listens for Android **VIEW intents** using its own `powerplay://` URI scheme, allowing another app or controller to open PowerPlay and request supported Plex playback actions.
+
+### What PowerPlay understands
+
+| Capability | How it works |
+| --- | --- |
+| **Launch from another system** | Android can deliver a PowerPlay deep link to the app. |
+| **Target a Plex server and show** | A link can specify a Plex server ID and a show's rating key, so there is no need to navigate the library manually. |
+| **Continuous TV-show shuffle** | A shuffle link starts randomized episode playback of the selected show. |
+| **Control individual Fire TVs** | Send the intent to whichever Fire Stick should play; each device runs its own PowerPlay instance. |
+
+For example, this link requests shuffled playback of a particular show:
 
 ```text
-Android package: com.power.powerplay
-URI scheme:     powerplay://
+powerplay://shuffle?server=SERVER_ID&show=SHOW_RATING_KEY
 ```
 
-The following examples assume you have configured the **Android TV integration** in Home Assistant, that it exposes your Fire Stick as `media_player.living_room_fire_tv_stick_4k_plus`, and that the Fire Stick is reachable through ADB. Replace the entity and the Plex IDs with your own. Plex server IDs and show rating keys are **not** the display names.
-
-### 1. Shuffle a TV show continuously
-
-This is the use case that started the project. It launches a specific Plex show in shuffled episode playback:
-
-```yaml
-action: androidtv.adb_command
-target:
-  entity_id: media_player.living_room_fire_tv_stick_4k_plus
-data:
-  command: >-
-    am start -a android.intent.action.VIEW
-    -d 'powerplay://shuffle?server=SERVER_ID&show=SHOW_RATING_KEY'
-    com.power.powerplay
-```
-
-The native playback-form URI is also supported:
+The equivalent native-style playback link is:
 
 ```text
 powerplay://play?server=SERVER_ID&id=SHOW_RATING_KEY&mode=shuffle
 ```
 
-Launch the same command against a different Fire Stick entity to control another TV independently. For automation YAML, keep the URI quoted inside the command so the query-string `&` is passed intact.
+Replace the placeholders with the **Plex server ID** and the show's **rating key**, not their display names. The Android package is `com.power.powerplay`; its links and app data are independent of the original Plezy app.
 
-### 2. One-tap shuffle script for a dashboard
+### Using it with Home Assistant
 
-Save this under `scripts:` in a YAML-based Home Assistant configuration, or adapt the sequence in the script editor. A dashboard button can call `script.powerplay_shuffle_living_room`.
+Home Assistant can use its **Android TV integration and ADB commands** to send these deep links to a Fire Stick. This makes it possible to start a favorite show's shuffle from a dashboard button, a scene, a schedule, or a presence-based automation—without manually navigating the PowerPlay interface.
 
-```yaml
-script:
-  powerplay_shuffle_living_room:
-    alias: "PowerPlay · Shuffle TV"
-    mode: restart
-    sequence:
-      - action: androidtv.adb_command
-        target:
-          entity_id: media_player.living_room_fire_tv_stick_4k_plus
-        data:
-          command: >-
-            am start -a android.intent.action.VIEW
-            -d 'powerplay://shuffle?server=SERVER_ID&show=SHOW_RATING_KEY'
-            com.power.powerplay
-```
-
-### 3. Start shuffle on a schedule
-
-For a recurring background-TV routine, use the same script in an automation. This example triggers at 7:00 PM; add your own conditions (such as whether the TV is on or someone is home) before using it.
-
-```yaml
-alias: "Evening PowerPlay shuffle"
-triggers:
-  - trigger: time
-    at: "19:00:00"
-actions:
-  - action: script.powerplay_shuffle_living_room
-mode: single
-```
-
-**Power control is separate from playback.** If the TV or stick can be asleep, use your existing TV-on/wake sequence and wait for the Fire Stick to become ADB-responsive before issuing the deep link.
-
-### 4. Keep Fire TV apps updated through Home Assistant
-
-PowerPlay also fits into a centralized update routine. If you've already defined a `script.update_powerplay` that checks releases, downloads the signed APK, installs it on your devices and verifies the resulting package, you can call it alongside other app updaters:
-
-```yaml
-alias: "Update Fire TV apps"
-triggers:
-  - trigger: time
-    at: "03:00:00"
-actions:
-  - action: script.update_powerplay
-    continue_on_error: true
-mode: single
-```
-
-This example **calls an existing updater script**; PowerPlay does not create `script.update_powerplay` automatically. An updater should discover the current build from [GitHub's latest release](https://github.com/The-Power-0/PowerPlay/releases/latest), verify downloaded checksums and signing compatibility, then check each device's installed version. Avoid reinstalling an older or differently signed APK over a newer installation.
-
-### Other ways to automate
-
-Use a room-specific dashboard button, a motion-activated ambient-TV routine, a scheduled evening shuffle, or a scene that first turns on the television and then launches PowerPlay. Because `powerplay://` is independent of `plezy://`, you can run both apps and maintain separate Home Assistant actions during migration.
+Home Assistant handles the surrounding logic, such as turning on the television, waiting for the Fire Stick to become responsive, and choosing which room to target. **PowerPlay handles the incoming playback request.** There is no separate built-in Home Assistant integration or automatic TV power management required by the app.
 
 ## Version history
 
