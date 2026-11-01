@@ -109,6 +109,19 @@ jobs:
                   for j in range(min(125,len(lines))):
                       if j not in shown:
                           print(f'{j+1}: {lines[j]}', flush=True)
+          for rel, begin, end in [
+              ('lib/providers/theme_provider.dart', 1, 290),
+              ('lib/theme/mono_theme.dart', 1, 221),
+              ('lib/screens/settings/appearance_settings_screen.dart', 190, 285),
+              ('lib/screens/settings/theme_settings_screen.dart', 1, 280),
+              ('lib/main.dart', 1850, 1910),
+          ]:
+              p = root / rel
+              if not p.is_file():
+                  continue
+              print(f'=== FULL {rel} {begin}-{end} ===', flush=True)
+              for i, line in enumerate(p.read_text().splitlines()[begin-1:end], begin):
+                  print(f'{i}: {line}', flush=True)
           PY
             exit 1
           fi
