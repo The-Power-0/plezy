@@ -18,7 +18,7 @@ on:
         description: 'Stable version: patch +0.0.1 for a feature; minor +0.1.0 for a full batch'
         required: true
         type: string
-        default: '1.1.1'
+        default: '1.1.2'
       confirm:
         description: 'Type PUBLISH_POWERPLAY to publish the candidate as the Latest stable release'
         required: true
@@ -137,7 +137,9 @@ jobs:
           - Automatic defaults are not saved into the portable hidden-library list. Newly connected libraries receive the same defaults; removing \`[4K]\` from a name removes only the automatic hiding.
           - Unknown hardware keeps libraries visible. Explicitly saved Hide choices are preserved.
           - Includes the PowerPlay 1.1.0 settings defaults, startup branding, and About updates.
-          - Single-feature release: patch increment to 1.1.1. All stable publications are explicitly marked Latest.
+          - New in v1.1.2: the full splash canvas matches the approved PowerPlay icon background (#04070E), including light, dark, OLED and Android 12 system splash themes.
+          - Retains 1.1.1 hardware-aware library defaults and 1.1.0 settings/branding.
+          - Stable publication is marked Latest.
 
           Application ID: \`com.power.powerplay\`. Deep links: \`powerplay://\`. Playback: ExoPlayer/Media3; ARMv7 Fire TV APK with the tested Fire TV optimizations retained.
 

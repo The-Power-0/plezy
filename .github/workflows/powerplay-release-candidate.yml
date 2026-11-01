@@ -75,11 +75,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 "$GITHUB_WORKSPACE/.github/powerplay/test_fix_splash_background.py"
           python3 "$GITHUB_WORKSPACE/.github/powerplay/apply_next_version.py" \
             --source "$RUNNER_TEMP/powerplay/plezy-custom-source"
           python3 "$GITHUB_WORKSPACE/.github/powerplay/check_next_version.py" \
             --source "$RUNNER_TEMP/powerplay/plezy-custom-source"
-          echo "PowerPlay $RELEASE_VERSION: defaults, branding, and hardware-aware library visibility applied." >> "$GITHUB_STEP_SUMMARY"
+          echo "PowerPlay $RELEASE_VERSION: retained features and matched splash background applied." >> "$GITHUB_STEP_SUMMARY"
       - name: Resolve and test
         shell: bash
         run: |

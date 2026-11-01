@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from fix_splash_background import update_splash_background
 
 
 def main():
@@ -32,6 +33,7 @@ def main():
     feature_patch = str(machinery / 'library-defaults.patch')
     subprocess.run(['git', 'apply', '--check', feature_patch], cwd=source, check=True)
     subprocess.run(['git', 'apply', feature_patch], cwd=source, check=True)
+    update_splash_background(source)
     shutil.copyfile(source / 'assets/plezy.png', source / 'assets/powerplay.png')
     updated = pubspec.read_text().replace('version: 1.0.0+10000', f'version: {version}+{number}')
     updated = updated.replace('description: "A beautiful Plex and Jellyfin client for Flutter"',

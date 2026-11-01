@@ -43,6 +43,21 @@ def main():
             if name == 'LaunchTheme' or name.startswith('SplashTheme.'):
                 background = next(i.text for i in style if i.attrib.get('name') == 'android:windowBackground')
                 assert background == '@drawable/powerplay_launch_background', (path, name)
+    # Verify the APK source, not the legacy repository-root Android files.
+    for qualifier in ['values', 'values-night']:
+        colors = ET.parse(res / qualifier / 'colors.xml')
+        for name in ['ic_launcher_background', 'splash_background', 'splash_dark',
+                     'splash_oled', 'splash_light']:
+            nodes = colors.findall(f"./color[@name='{name}']")
+            assert len(nodes) == 1 and nodes[0].text == '#04070E', (qualifier, name)
+    for qualifier in ['values-v31', 'values-night-v31']:
+        themes = ET.parse(res / qualifier / 'styles.xml')
+        for name in ['LaunchTheme', 'SplashTheme.Dark', 'SplashTheme.Oled',
+                     'SplashTheme.Light', 'SplashTheme.System']:
+            nodes = themes.findall(f"./style[@name='{name}']")
+            assert len(nodes) == 1, (qualifier, name)
+            bgs = [i.text for i in nodes[0] if i.attrib.get('name') == 'android:windowSplashScreenBackground']
+            assert bgs == ['@color/splash_background'], (qualifier, name)
     ET.parse(res / 'drawable/powerplay_launch_background.xml')
     assert (root / 'test/services/powerplay_defaults_test.dart').is_file()
     print('PASS: actual build source has PowerPlay identity, defaults, splash, About, and regression tests')
