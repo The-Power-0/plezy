@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:plezy/i18n/strings.g.dart';
 import 'package:plezy/providers/theme_provider.dart';
+import 'package:plezy/theme/powerplay_palette.dart';
 import 'package:plezy/screens/settings/settings_utils.dart';
 import 'package:plezy/services/base_shared_preferences_service.dart';
 import 'package:plezy/services/settings_service.dart' as settings;
@@ -14,6 +15,20 @@ void main() {
   setUpAll(() => LocaleSettings.setLocaleSync(AppLocale.en));
 
   group('ThemeProvider', () {
+    test('palette selection persists and remains independent of OLED', () async {
+      final p = ThemeProvider();
+      await Future.delayed(Duration.zero);
+      await p.setThemeMode(settings.ThemeMode.oled);
+      await p.setPalette(PowerPlayPalette.evergreen);
+      expect(p.palette, PowerPlayPalette.evergreen);
+      expect(p.themeMode, settings.ThemeMode.oled);
+      expect(p.darkTheme.scaffoldBackgroundColor, const material.Color(0xFF000000));
+      expect(p.darkTheme.colorScheme.primary, PowerPlayPalette.evergreen.darkAccent);
+      final svc = await settings.SettingsService.getInstance();
+      expect(svc.read(settings.SettingsService.colorPalette), PowerPlayPalette.evergreen);
+      p.dispose();
+    });
+
     test('exposes a non-null themeMode immediately and flips after init', () async {
       final p = ThemeProvider();
       // The constructor synchronously sets _themeMode to system.

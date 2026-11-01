@@ -59,8 +59,21 @@ def main():
             bgs = [i.text for i in nodes[0] if i.attrib.get('name') == 'android:windowSplashScreenBackground']
             assert bgs == ['@color/splash_background'], (qualifier, name)
     ET.parse(res / 'drawable/powerplay_launch_background.xml')
+    palette = (root / 'lib/theme/powerplay_palette.dart').read_text()
+    for theme in ('signaturePurple', 'moonlightBlue', 'ember', 'evergreen', 'rose', 'monochrome'):
+        assert theme in palette, theme
+    assert 'if (oled)' in palette and '0xFF000000' in palette
+    adapter = (root / 'lib/theme/powerplay_palette_release_adapter.dart').read_text()
+    assert 'extension PowerPlayPaletteReleaseAdapter' in adapter
+    assert "'color_palette'" in settings
+    provider = (root / 'lib/providers/theme_provider.dart').read_text()
+    assert 'setCuratedPalette(' in provider and 'curatedPalette' in provider
+    assert 'curated.toMonoPalette(' in main
+    picker = (root / 'lib/screens/settings/theme_settings_screen.dart').read_text()
+    assert 'PowerPlay color themes' in picker and 'Display mode' in picker
+    assert (root / 'test/theme/powerplay_curated_palette_test.dart').is_file()
     assert (root / 'test/services/powerplay_defaults_test.dart').is_file()
-    print('PASS: actual build source has PowerPlay identity, defaults, splash, About, and regression tests')
+    print('PASS: actual build source has PowerPlay identity, defaults, splash, themes, OLED support, About, and regression tests')
 
 
 if __name__ == '__main__':

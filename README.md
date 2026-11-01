@@ -53,7 +53,7 @@ Today the focus is still the same: **a fast, comfortable Plex experience on Fire
 | ▶️ **Media3 playback** | ExoPlayer/Media3 video with FFmpeg codec libraries; no MPV player runtime in the distributed build. |
 | 🏠 **Automation-ready** | Android deep links let Home Assistant open the app or start continuous shuffled-show playback. |
 | 📺 **Hardware-aware libraries** | Known 1080p-only Fire Sticks start with libraries named `[4K]` hidden; 4K-capable models keep them visible even if HDMI output is currently 1080p. |
-| 🎨 **Independent identity** | PowerPlay purple artwork, startup screens and About page, with a package and URI scheme separate from Plezy. |
+| 🎨 **Customizable appearance** | Six curated color themes with independent Light, Dark, System, and OLED modes; PowerPlay artwork, startup screens and About page remain branded. |
 
 Library hiding is a **default, not a restriction**: users can manually show a hidden library. Explicit Show/Hide selections persist per device profile. Unknown hardware keeps libraries visible by default.
 
@@ -100,6 +100,7 @@ PowerPlay's version numbers began with the standalone rebrand. Earlier releases 
 
 | Release | Milestone |
 | --- | --- |
+| **[1.2.0](https://github.com/The-Power-0/PowerPlay/releases/tag/powerplay-v1.2.0)** | Six curated color themes (Signature Purple, Moonlight Blue, Ember, Evergreen, Rosé, Monochrome), each compatible with Light, Dark, System, and true-black OLED. Live changes persist per Fire TV. |
 | **[1.1.2](https://github.com/The-Power-0/PowerPlay/releases/tag/powerplay-v1.1.2)** | Splash backgrounds now match the approved logo canvas throughout Fire TV light, dark, OLED and Android 12 launch paths. |
 | **[1.1.1](https://github.com/The-Power-0/PowerPlay/releases/tag/powerplay-v1.1.1)** | Hardware-aware `[4K]` library defaults: hide on recognized 1080p-only sticks, show on 4K-capable sticks regardless of current output resolution; preserve manual overrides. |
 | **[1.1.0](https://github.com/The-Power-0/PowerPlay/releases/tag/powerplay-v1.1.0)** | Improved Fire TV defaults: Continue Watching/Episode Action open details, content-frame-rate matching on, automatic intro skip after three seconds; extended startup and About branding. |
