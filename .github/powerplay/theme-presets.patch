@@ -1,0 +1,736 @@
+diff --git a/lib/main.dart b/lib/main.dart
+index 4af0a32e18..03ab6eab3d 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -28,6 +28,7 @@ import 'profiles/profile_selection_policy.dart';
+ import 'models/external_player_models.dart';
+ import 'mixins/mounted_set_state_mixin.dart';
+ import 'theme/mono_theme.dart';
++import 'theme/powerplay_palette.dart';
+ import 'profiles/plex_home_service.dart';
+ import 'screens/auth_screen.dart';
+ import 'screens/profile/pin_entry_dialog.dart';
+@@ -204,7 +205,12 @@ Future<StartupThemeResolution> _resolveStartupTheme() async {
+   final settings = await SettingsService.getInstance();
+   await TvDetectionService.getInstance(forceTv: settings.read(SettingsService.forceTvMode));
+   final mode = settings.read(SettingsService.themeMode);
+-  return (themeMode: ThemeProvider.materialThemeModeFor(mode), darkTheme: ThemeProvider.darkThemeFor(mode));
++  final palette = settings.read(SettingsService.colorPalette);
++  return (
++    themeMode: ThemeProvider.materialThemeModeFor(mode),
++    darkTheme: ThemeProvider.darkThemeFor(mode, palette: palette),
++    lightTheme: monoTheme(dark: false, palette: palette),
++  );
+ }
+ 
+ /// Wraps [step] so a failure names the gate phase it came from.
+@@ -615,7 +621,7 @@ Future<void> showRepairOutcomeDialog(
+ }
+ 
+ /// Theme the startup frames adopt once the persisted preference is readable.
+-typedef StartupThemeResolution = ({material.ThemeMode themeMode, ThemeData darkTheme});
++typedef StartupThemeResolution = ({material.ThemeMode themeMode, ThemeData darkTheme, ThemeData? lightTheme});
+ 
+ /// Mounts a Flutter-owned startup frame before invoking the asynchronous
+ /// initialization gate. The generic seam keeps frame ordering, failure, and
+@@ -826,7 +832,7 @@ class _StartupBootstrapState<T> extends State<StartupBootstrap<T>> {
+         builder: (context) => InputModeTracker(
+           child: MaterialApp(
+             debugShowCheckedModeBanner: false,
+-            theme: widget.lightTheme,
++            theme: resolved?.lightTheme ?? widget.lightTheme,
+             darkTheme: resolved?.darkTheme ?? widget.darkTheme,
+             themeMode: resolved?.themeMode ?? widget.themeMode,
+             home: Builder(builder: _buildBootstrapHome),
+diff --git a/lib/providers/theme_provider.dart b/lib/providers/theme_provider.dart
+index 19bef8b0e5..a4c9968b44 100644
+--- a/lib/providers/theme_provider.dart
++++ b/lib/providers/theme_provider.dart
+@@ -7,10 +7,12 @@ import '../mixins/disposable_change_notifier_mixin.dart';
+ import '../services/settings_binding_owner.dart';
+ import '../services/settings_service.dart' as settings;
+ import '../theme/mono_theme.dart';
++import '../theme/powerplay_palette.dart';
+ 
+ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, WidgetsBindingObserver {
+   late final SettingsBindingOwner _settingsBinding;
+   settings.ThemeMode _themeMode = settings.ThemeMode.system;
++  PowerPlayPalette _palette = PowerPlayPalette.monochrome;
+   late Brightness _systemBrightness;
+ 
+   ThemeProvider() {
+@@ -19,10 +21,16 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
+     // them before runApp) so the first frame paints the persisted theme; the
+     // async path below lands a microtask too late for the first build.
+     final loaded = settings.SettingsService.instanceOrNull;
+-    if (loaded != null) _themeMode = loaded.read(settings.SettingsService.themeMode);
++    if (loaded != null) {
++      _themeMode = loaded.read(settings.SettingsService.themeMode);
++      _palette = loaded.read(settings.SettingsService.colorPalette);
++    }
+     _settingsBinding = SettingsBindingOwner(
+-      prefs: const [settings.SettingsService.themeMode],
+-      onRefresh: (service) => _syncThemeMode(service.read(settings.SettingsService.themeMode)),
++      prefs: const [settings.SettingsService.themeMode, settings.SettingsService.colorPalette],
++      onRefresh: (service) {
++        _syncThemeMode(service.read(settings.SettingsService.themeMode));
++        _syncPalette(service.read(settings.SettingsService.colorPalette));
++      },
+     );
+     unawaited(_settingsBinding.bind());
+     WidgetsBinding.instance.addObserver(this);
+@@ -50,15 +58,24 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
+     if (changed || forceNotify) safeNotifyListeners();
+   }
+ 
++  void _syncPalette(PowerPlayPalette palette, {bool forceNotify = false}) {
++    if (_palette == palette && !forceNotify) return;
++    _palette = palette;
++    safeNotifyListeners();
++  }
++
+   settings.ThemeMode get themeMode => _themeMode;
++  PowerPlayPalette get palette => _palette;
+ 
+   /// Dark palette for [mode], honouring the OLED variant.
+   ///
+   /// Static so the pre-provider startup frame can resolve the same theme this
+   /// provider will settle on, instead of guessing from platform brightness
+   /// and flashing when the two disagree (#1833).
+-  static ThemeData darkThemeFor(settings.ThemeMode mode) =>
+-      monoTheme(dark: true, oled: mode == settings.ThemeMode.oled);
++  static ThemeData darkThemeFor(
++    settings.ThemeMode mode, {
++    PowerPlayPalette palette = PowerPlayPalette.monochrome,
++  }) => monoTheme(dark: true, oled: mode == settings.ThemeMode.oled, palette: palette);
+ 
+   /// Material equivalent of the app's own [settings.ThemeMode].
+   static ThemeMode materialThemeModeFor(settings.ThemeMode mode) => switch (mode) {
+@@ -68,8 +85,8 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
+     settings.ThemeMode.system => ThemeMode.system,
+   };
+ 
+-  ThemeData get lightTheme => monoTheme(dark: false);
+-  ThemeData get darkTheme => darkThemeFor(_themeMode);
++  ThemeData get lightTheme => monoTheme(dark: false, palette: _palette);
++  ThemeData get darkTheme => darkThemeFor(_themeMode, palette: _palette);
+ 
+   ThemeMode get materialThemeMode => materialThemeModeFor(_themeMode);
+ 
+@@ -96,10 +113,20 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
+     if (_settingsBinding.settings == null) _syncThemeMode(mode);
+   }
+ 
++  Future<void> setPalette(PowerPlayPalette palette) async {
++    if (_palette == palette) return;
++    final service = _settingsBinding.settings ?? await settings.SettingsService.getInstance();
++    await service.write(settings.SettingsService.colorPalette, palette);
++    if (_settingsBinding.settings == null) _syncPalette(palette);
++  }
++
+   Future<void> reload() async {
+     await _settingsBinding.bind();
+     final service = _settingsBinding.settings;
+-    if (service != null) _syncThemeMode(service.read(settings.SettingsService.themeMode), forceNotify: true);
++    if (service != null) {
++      _syncThemeMode(service.read(settings.SettingsService.themeMode), forceNotify: true);
++      _syncPalette(service.read(settings.SettingsService.colorPalette));
++    }
+   }
+ 
+   void _updateSplashTheme(settings.ThemeMode mode) {
+diff --git a/lib/screens/settings/appearance_settings_screen.dart b/lib/screens/settings/appearance_settings_screen.dart
+index ef456d81c2..cdb6aaa71e 100644
+--- a/lib/screens/settings/appearance_settings_screen.dart
++++ b/lib/screens/settings/appearance_settings_screen.dart
+@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
+ import '../../i18n/strings.g.dart';
+ import '../../providers/catalog_sources_provider.dart';
+ import '../../providers/theme_provider.dart';
++import '../../theme/powerplay_palette.dart';
+ import '../../services/settings_service.dart' hide ThemeMode;
+ import '../../services/settings_service.dart' as settings show ThemeMode;
+ import '../../focus/focusable_slider.dart';
+@@ -34,6 +35,7 @@ class AppearanceSettingsScreen extends StatelessWidget {
+           title: t.settings.display,
+           children: [
+             _themeSelector(),
++            const _PaletteGallery(),
+             if (PlatformDetector.isAutomotive()) _displayScaleSelector(),
+             if (Platform.isAndroid) _visualEffectsSelector(context),
+           ],
+@@ -346,3 +348,128 @@ class AppearanceSettingsScreen extends StatelessWidget {
+     ],
+   );
+ }
++
++/// Compact, remote-friendly gallery: every swatch is a real focusable button.
++/// The display-mode selection above stays independent (including OLED).
++class _PaletteGallery extends StatelessWidget {
++  const _PaletteGallery();
++
++  @override
++  Widget build(BuildContext context) {
++    final provider = context.watch<ThemeProvider>();
++    final theme = Theme.of(context);
++    return Padding(
++      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text('Color theme', style: settingsOptionTitleStyle(context)),
++          const SizedBox(height: 5),
++          Text(
++            'Select a palette. OLED mode works with every color theme.',
++            style: theme.textTheme.bodySmall,
++          ),
++          const SizedBox(height: 12),
++          LayoutBuilder(
++            builder: (context, constraints) {
++              final columns = constraints.maxWidth >= 630 ? 3 : 2;
++              return GridView.builder(
++                shrinkWrap: true,
++                physics: const NeverScrollableScrollPhysics(),
++                itemCount: PowerPlayPalette.values.length,
++                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
++                  crossAxisCount: columns,
++                  mainAxisSpacing: 8,
++                  crossAxisSpacing: 8,
++                  mainAxisExtent: 112,
++                ),
++                itemBuilder: (context, index) {
++                  final palette = PowerPlayPalette.values[index];
++                  final selected = palette == provider.palette;
++                  return _PaletteOption(
++                    palette: palette,
++                    selected: selected,
++                    onSelected: () => provider.setPalette(palette),
++                  );
++                },
++              );
++            },
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _PaletteOption extends StatelessWidget {
++  const _PaletteOption({
++    required this.palette,
++    required this.selected,
++    required this.onSelected,
++  });
++
++  final PowerPlayPalette palette;
++  final bool selected;
++  final VoidCallback onSelected;
++
++  @override
++  Widget build(BuildContext context) {
++    final theme = Theme.of(context);
++    final preview = palette.colors(dark: true);
++    return OutlinedButton(
++      onPressed: onSelected,
++      style: OutlinedButton.styleFrom(
++        padding: const EdgeInsets.all(8),
++        side: BorderSide(color: selected ? theme.colorScheme.primary : theme.dividerColor, width: selected ? 2 : 1),
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
++      ),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Expanded(
++            child: DecoratedBox(
++              decoration: BoxDecoration(
++                color: preview.background,
++                borderRadius: BorderRadius.circular(7),
++              ),
++              child: Padding(
++                padding: const EdgeInsets.all(8),
++                child: Row(
++                  children: [
++                    Container(width: 19, decoration: BoxDecoration(color: preview.surface, borderRadius: BorderRadius.circular(4))),
++                    const SizedBox(width: 8),
++                    Expanded(
++                      child: Column(
++                        crossAxisAlignment: CrossAxisAlignment.start,
++                        mainAxisAlignment: MainAxisAlignment.center,
++                        children: [
++                          Container(height: 5, decoration: BoxDecoration(color: preview.accent, borderRadius: BorderRadius.circular(3))),
++                          const SizedBox(height: 6),
++                          Container(height: 4, width: 48, decoration: BoxDecoration(color: preview.textMuted, borderRadius: BorderRadius.circular(3))),
++                        ],
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++            ),
++          ),
++          const SizedBox(height: 7),
++          Row(
++            children: [
++              Expanded(
++                child: Text(
++                  palette.label,
++                  style: theme.textTheme.labelSmall?.copyWith(fontWeight: selected ? FontWeight.bold : FontWeight.normal),
++                  maxLines: 1,
++                  overflow: TextOverflow.ellipsis,
++                ),
++              ),
++              if (selected) Icon(Icons.check_circle, size: 16, color: theme.colorScheme.primary),
++            ],
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/services/settings_service.dart b/lib/services/settings_service.dart
+index 4a5268236c..10517338fc 100644
+--- a/lib/services/settings_service.dart
++++ b/lib/services/settings_service.dart
+@@ -35,6 +35,7 @@ import '../models/audio_channel_limit.dart';
+ import '../models/audio_quality_preset.dart';
+ import '../models/transcode_quality_preset.dart';
+ import '../navigation/navigation_tabs.dart';
++import '../theme/powerplay_palette.dart';
+ import '../utils/platform_detector.dart';
+ import 'trackers/tracker_constants.dart';
+ import '../profiles/profile.dart';
+@@ -891,6 +892,13 @@ class SettingsService extends BaseSharedPreferencesService {
+     values: ThemeMode.values,
+     defaultValueProvider: _tvAwareThemeModeDefault,
+   );
++  /// Stored independently from light/dark/OLED so each palette supports all
++  /// appearance modes. Preserve the current visual style on existing installs.
++  static const colorPalette = EnumPref<PowerPlayPalette>(
++    'color_palette',
++    values: PowerPlayPalette.values,
++    defaultValue: PowerPlayPalette.monochrome,
++  );
+   static const videoPlayerNavigationEnabled = BoolPref(
+     'video_player_navigation_enabled',
+     defaultValueProvider: PlatformDetector.isTV,
+diff --git a/lib/theme/mono_theme.dart b/lib/theme/mono_theme.dart
+index b14926ae14..f96d740b0d 100644
+--- a/lib/theme/mono_theme.dart
++++ b/lib/theme/mono_theme.dart
+@@ -1,49 +1,29 @@
+ import 'package:flutter/foundation.dart';
+ import 'package:flutter/material.dart';
+ import 'gapped_track_shape.dart';
++import 'powerplay_palette.dart';
+ import 'mono_tokens.dart';
+ 
+-final Map<({bool dark, bool oled, TargetPlatform platform}), ThemeData> _monoThemeCache = {};
++final Map<({bool dark, bool oled, TargetPlatform platform, PowerPlayPalette palette}), ThemeData> _monoThemeCache = {};
+ 
+-ThemeData monoTheme({required bool dark, bool oled = false}) {
++ThemeData monoTheme({required bool dark, bool oled = false, PowerPlayPalette palette = PowerPlayPalette.monochrome}) {
+   // ThemeData derives several defaults from defaultTargetPlatform.
+-  final key = (dark: dark || oled, oled: oled, platform: defaultTargetPlatform);
++  final key = (dark: dark || oled, oled: oled, platform: defaultTargetPlatform, palette: palette);
+   final cached = _monoThemeCache[key];
+   if (cached != null) return cached;
+ 
+-  final theme = _buildMonoTheme(dark: key.dark, oled: key.oled, platform: key.platform);
++  final theme = _buildMonoTheme(dark: key.dark, oled: key.oled, platform: key.platform, palette: key.palette);
+   _monoThemeCache[key] = theme;
+   return theme;
+ }
+ 
+-ThemeData _buildMonoTheme({required bool dark, required bool oled, required TargetPlatform platform}) {
+-  // neutral greys tuned for crisp contrast
+-  final ({Color bg, Color surface, Color outline, Color text, Color textMuted}) c;
+-  if (oled) {
+-    c = (
+-      bg: const Color(0xFF000000), // Pure black for OLED
+-      surface: const Color(0xFF0A0A0A), // Very dark gray
+-      outline: const Color(0x1FFFFFFF),
+-      text: const Color(0xFFEDEDED),
+-      textMuted: const Color(0x99EDEDED),
+-    );
+-  } else if (dark) {
+-    c = (
+-      bg: const Color(0xFF0E0F12),
+-      surface: const Color(0xFF15171C),
+-      outline: const Color(0x1FFFFFFF),
+-      text: const Color(0xFFEDEDED),
+-      textMuted: const Color(0x99EDEDED),
+-    );
+-  } else {
+-    c = (
+-      bg: const Color(0xFFF7F7F8),
+-      surface: const Color(0xFFFFFFFF),
+-      outline: const Color(0x19000000),
+-      text: const Color(0xFF111111),
+-      textMuted: const Color(0x99111111),
+-    );
+-  }
++ThemeData _buildMonoTheme({
++  required bool dark,
++  required bool oled,
++  required TargetPlatform platform,
++  required PowerPlayPalette palette,
++}) {
++  final c = palette.colors(dark: dark, oled: oled);
+ 
+   final isDark = dark || oled;
+   final clickableCursor = WidgetStateProperty.resolveWith<MouseCursor>(
+@@ -57,11 +37,11 @@ ThemeData _buildMonoTheme({required bool dark, required bool oled, required Targ
+     padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 18, vertical: 14)),
+     elevation: const WidgetStatePropertyAll(0),
+     backgroundColor: WidgetStateProperty.resolveWith(
+-      (states) => states.contains(WidgetState.disabled) ? c.text.withValues(alpha: 0.12) : c.text,
++      (states) => states.contains(WidgetState.disabled) ? c.text.withValues(alpha: 0.12) : c.accent,
+     ),
+     foregroundColor: WidgetStateProperty.resolveWith(
+       (states) =>
+-          states.contains(WidgetState.disabled) ? c.text.withValues(alpha: 0.38) : (isDark ? c.bg : Colors.white),
++          states.contains(WidgetState.disabled) ? c.text.withValues(alpha: 0.38) : c.onAccent,
+     ),
+     shape: const WidgetStatePropertyAll(StadiumBorder()),
+   );
+@@ -76,42 +56,42 @@ ThemeData _buildMonoTheme({required bool dark, required bool oled, required Targ
+     fontFamilyFallback: platform == TargetPlatform.linux ? const ['Go Noto Current', 'Go Noto Current Hangul'] : null,
+     colorScheme: ColorScheme(
+       brightness: isDark ? Brightness.dark : Brightness.light,
+-      primary: c.text,
+-      onPrimary: isDark ? c.bg : Colors.white,
++      primary: c.accent,
++      onPrimary: c.onAccent,
+       secondary: c.text,
+-      onSecondary: c.bg,
++      onSecondary: c.background,
+       surface: c.surface,
+       onSurface: c.text,
+       error: const Color(0xFFB00020),
+       onError: Colors.white,
+       tertiary: c.text,
+-      onTertiary: c.bg,
++      onTertiary: c.background,
+       primaryContainer: c.surface,
+       onPrimaryContainer: c.text,
+       secondaryContainer: c.surface,
+       onSecondaryContainer: c.text,
+       surfaceContainerHighest: c.surface,
+-      surfaceContainerLow: c.bg,
+-      surfaceDim: c.bg,
++      surfaceContainerLow: c.background,
++      surfaceDim: c.background,
+       surfaceBright: c.surface,
+       outline: c.outline,
+       shadow: Colors.transparent,
+       scrim: Colors.black,
+       inverseSurface: c.text,
+-      onInverseSurface: c.bg,
+-      inversePrimary: c.bg,
++      onInverseSurface: c.background,
++      inversePrimary: c.background,
+     ),
+     // remove "Material feel"
+     splashFactory: NoSplash.splashFactory,
+     highlightColor: Colors.transparent,
+     // Explicit mono-derived tile highlights: ListTile's native focus/hover
+     // fill is the dpad focus visual inside M3E grouped-list cards.
+-    focusColor: c.text.withValues(alpha: 0.12),
++    focusColor: c.accent.withValues(alpha: 0.12),
+     hoverColor: c.text.withValues(alpha: 0.05),
+     dividerColor: c.outline,
+-    scaffoldBackgroundColor: c.bg,
++    scaffoldBackgroundColor: c.background,
+     appBarTheme: AppBarTheme(
+-      backgroundColor: c.bg,
++      backgroundColor: c.background,
+       elevation: 0,
+       scrolledUnderElevation: 0,
+       centerTitle: false,
+@@ -160,13 +140,13 @@ ThemeData _buildMonoTheme({required bool dark, required bool oled, required Targ
+       textColor: c.text,
+     ),
+     navigationBarTheme: NavigationBarThemeData(
+-      backgroundColor: c.bg,
++      backgroundColor: c.background,
+       elevation: 0,
+       indicatorColor: Colors.transparent,
+       labelTextStyle: WidgetStatePropertyAll(TextStyle(color: c.textMuted, fontSize: 11)),
+       iconTheme: WidgetStateProperty.resolveWith((states) {
+         final active = states.contains(WidgetState.selected);
+-        return IconThemeData(opacity: active ? 1 : 0.6, size: 22, color: c.text);
++        return IconThemeData(opacity: active ? 1 : 0.6, size: 22, color: active ? c.accent : c.text);
+       }),
+     ),
+     // Floating snackbars auto-offset above the Scaffold's bottom NavigationBar,
+@@ -196,7 +176,7 @@ ThemeData _buildMonoTheme({required bool dark, required bool oled, required Targ
+         normal: const Duration(milliseconds: 200),
+         slow: const Duration(milliseconds: 300),
+         expressive: const Duration(milliseconds: 350),
+-        bg: c.bg,
++        bg: c.background,
+         surface: c.surface,
+         outline: c.outline,
+         text: c.text,
+diff --git a/lib/theme/powerplay_palette.dart b/lib/theme/powerplay_palette.dart
+new file mode 100644
+index 0000000000..04ca18dd12
+--- /dev/null
++++ b/lib/theme/powerplay_palette.dart
+@@ -0,0 +1,174 @@
++import 'package:flutter/material.dart';
++
++/// PowerPlay's curated UI palettes. Display brightness (including true-black
++/// OLED) is an independent preference: every palette supports every mode.
++enum PowerPlayPalette {
++  signaturePurple(
++    'Signature Purple',
++    'Violet accents and rich plum surfaces',
++    Color(0xFFA78BFA),
++    Color(0xFF7445BD),
++    Color(0xFF181125),
++    Color(0xFF302047),
++    Color(0xFFF7F4FC),
++  ),
++  moonlightBlue(
++    'Moonlight Blue',
++    'Cool blue accents over deep navy',
++    Color(0xFF56B9F5),
++    Color(0xFF126DA9),
++    Color(0xFF0B1729),
++    Color(0xFF1A334E),
++    Color(0xFFF3F8FD),
++  ),
++  ember(
++    'Ember',
++    'Warm amber and dark charcoal',
++    Color(0xFFFFAB69),
++    Color(0xFFA65020),
++    Color(0xFF20140F),
++    Color(0xFF3B281D),
++    Color(0xFFFCF7F2),
++  ),
++  evergreen(
++    'Evergreen',
++    'Forest greens and soft mint',
++    Color(0xFF65DEAC),
++    Color(0xFF14774F),
++    Color(0xFF0D1D1A),
++    Color(0xFF203D34),
++    Color(0xFFF3FAF6),
++  ),
++  rose(
++    'Rosé',
++    'Soft rose accents and wine-toned surfaces',
++    Color(0xFFF5A0CE),
++    Color(0xFFAD377A),
++    Color(0xFF24141F),
++    Color(0xFF4A2840),
++    Color(0xFFFCF5F9),
++  ),
++  monochrome(
++    'Monochrome',
++    'The original minimalist PowerPlay appearance',
++    Color(0xFFEDEDED),
++    Color(0xFF111111),
++    Color(0xFF0E0F12),
++    Color(0xFF15171C),
++    Color(0xFFF7F7F8),
++  );
++
++  const PowerPlayPalette(
++    this.label,
++    this.description,
++    this.darkAccent,
++    this.lightAccent,
++    this.darkBackground,
++    this.darkSurface,
++    this.lightBackground,
++  );
++
++  final String label;
++  final String description;
++  final Color darkAccent;
++  final Color lightAccent;
++  final Color darkBackground;
++  final Color darkSurface;
++  final Color lightBackground;
++
++  /// A painted swatch, independent of the viewer's brightness setting.
++  Color get swatch => darkAccent;
++
++  PowerPlayPaletteColors colors({required bool dark, bool oled = false}) {
++    // Keep the legacy Monochrome colors byte-for-byte for existing installs.
++    if (this == PowerPlayPalette.monochrome) {
++      if (oled) {
++        return const PowerPlayPaletteColors(
++          background: Color(0xFF000000),
++          surface: Color(0xFF0A0A0A),
++          outline: Color(0x1FFFFFFF),
++          text: Color(0xFFEDEDED),
++          textMuted: Color(0x99EDEDED),
++          accent: Color(0xFFEDEDED),
++          onAccent: Color(0xFF000000),
++        );
++      }
++      if (dark) {
++        return const PowerPlayPaletteColors(
++          background: Color(0xFF0E0F12),
++          surface: Color(0xFF15171C),
++          outline: Color(0x1FFFFFFF),
++          text: Color(0xFFEDEDED),
++          textMuted: Color(0x99EDEDED),
++          accent: Color(0xFFEDEDED),
++          onAccent: Color(0xFF0E0F12),
++        );
++      }
++      return const PowerPlayPaletteColors(
++        background: Color(0xFFF7F7F8),
++        surface: Color(0xFFFFFFFF),
++        outline: Color(0x19000000),
++        text: Color(0xFF111111),
++        textMuted: Color(0x99111111),
++        accent: Color(0xFF111111),
++        onAccent: Color(0xFFFFFFFF),
++      );
++    }
++
++    if (oled) {
++      return PowerPlayPaletteColors(
++        background: const Color(0xFF000000),
++        // Dark cards may be tinted; the actual scaffold stays OLED black.
++        surface: const Color(0xFF0A0A0A),
++        outline: const Color(0x30FFFFFF),
++        text: const Color(0xFFF2F1F5),
++        textMuted: const Color(0xB2F2F1F5),
++        accent: darkAccent,
++        onAccent: const Color(0xFF101017),
++      );
++    }
++
++    if (dark) {
++      return PowerPlayPaletteColors(
++        background: darkBackground,
++        surface: darkSurface,
++        outline: const Color(0x33FFFFFF),
++        text: const Color(0xFFF2F1F5),
++        textMuted: const Color(0xB2F2F1F5),
++        accent: darkAccent,
++        onAccent: const Color(0xFF101017),
++      );
++    }
++
++    return PowerPlayPaletteColors(
++      background: lightBackground,
++      surface: const Color(0xFFFFFFFF),
++      outline: const Color(0x26000000),
++      text: const Color(0xFF18171D),
++      textMuted: const Color(0xA618171D),
++      accent: lightAccent,
++      onAccent: const Color(0xFFFFFFFF),
++    );
++  }
++}
++
++@immutable
++class PowerPlayPaletteColors {
++  const PowerPlayPaletteColors({
++    required this.background,
++    required this.surface,
++    required this.outline,
++    required this.text,
++    required this.textMuted,
++    required this.accent,
++    required this.onAccent,
++  });
++
++  final Color background;
++  final Color surface;
++  final Color outline;
++  final Color text;
++  final Color textMuted;
++  final Color accent;
++  final Color onAccent;
++}
+diff --git a/test/providers/theme_provider_test.dart b/test/providers/theme_provider_test.dart
+index babf6ca989..10b1f7fc54 100644
+--- a/test/providers/theme_provider_test.dart
++++ b/test/providers/theme_provider_test.dart
+@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
+ import 'package:material_symbols_icons/symbols.dart';
+ import 'package:plezy/i18n/strings.g.dart';
+ import 'package:plezy/providers/theme_provider.dart';
++import 'package:plezy/theme/powerplay_palette.dart';
+ import 'package:plezy/screens/settings/settings_utils.dart';
+ import 'package:plezy/services/base_shared_preferences_service.dart';
+ import 'package:plezy/services/settings_service.dart' as settings;
+@@ -14,6 +15,20 @@ void main() {
+   setUpAll(() => LocaleSettings.setLocaleSync(AppLocale.en));
+ 
+   group('ThemeProvider', () {
++    test('palette selection persists and remains independent of OLED', () async {
++      final p = ThemeProvider();
++      await Future.delayed(Duration.zero);
++      await p.setThemeMode(settings.ThemeMode.oled);
++      await p.setPalette(PowerPlayPalette.evergreen);
++      expect(p.palette, PowerPlayPalette.evergreen);
++      expect(p.themeMode, settings.ThemeMode.oled);
++      expect(p.darkTheme.scaffoldBackgroundColor, const material.Color(0xFF000000));
++      expect(p.darkTheme.colorScheme.primary, PowerPlayPalette.evergreen.darkAccent);
++      final svc = await settings.SettingsService.getInstance();
++      expect(svc.read(settings.SettingsService.colorPalette), PowerPlayPalette.evergreen);
++      p.dispose();
++    });
++
+     test('exposes a non-null themeMode immediately and flips after init', () async {
+       final p = ThemeProvider();
+       // The constructor synchronously sets _themeMode to system.
+diff --git a/test/startup_bootstrap_test.dart b/test/startup_bootstrap_test.dart
+index 5f696e0f0c..6f9b056212 100644
+--- a/test/startup_bootstrap_test.dart
++++ b/test/startup_bootstrap_test.dart
+@@ -194,6 +194,7 @@ void main() {
+     resolved.complete((
+       themeMode: ThemeProvider.materialThemeModeFor(settings.ThemeMode.oled),
+       darkTheme: ThemeProvider.darkThemeFor(settings.ThemeMode.oled),
++      lightTheme: null,
+     ));
+     await tester.pump();
+     await tester.pump(const Duration(milliseconds: 400));
+diff --git a/test/theme/mono_theme_test.dart b/test/theme/mono_theme_test.dart
+index b4d329ff87..4d0087fd8c 100644
+--- a/test/theme/mono_theme_test.dart
++++ b/test/theme/mono_theme_test.dart
+@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:plezy/theme/mono_theme.dart';
++import 'package:plezy/theme/powerplay_palette.dart';
+ 
+ /// `monoTheme` builds a full `ColorScheme`, an applied+copyWith'd Typography
+ /// `TextTheme`, ~14 sub-theme objects, and then clones the whole `ThemeData`
+@@ -11,6 +12,23 @@ import 'package:plezy/theme/mono_theme.dart';
+ /// two properties that make that safe: stable identity per palette, and a cache
+ /// key that includes every input the builder actually reads.
+ void main() {
++  test('every curated palette supports dark, light, and OLED independently', () {
++    final colors = <Color>{};
++    for (final palette in PowerPlayPalette.values) {
++      final light = monoTheme(dark: false, palette: palette);
++      final dark = monoTheme(dark: true, palette: palette);
++      final oled = monoTheme(dark: true, oled: true, palette: palette);
++      expect(light.brightness, Brightness.light);
++      expect(dark.brightness, Brightness.dark);
++      expect(oled.scaffoldBackgroundColor, const Color(0xFF000000));
++      expect(identical(light, dark), isFalse);
++      expect(identical(dark, oled), isFalse);
++      expect(identical(oled, monoTheme(dark: false, oled: true, palette: palette)), isTrue);
++      expect(identical(oled, monoTheme(dark: true, oled: true, palette: palette)), isTrue);
++      expect(colors.add(dark.colorScheme.primary), isTrue, reason: 'Duplicate theme accent: ${palette.name}');
++    }
++  });
++
+   test('repeated calls return the identical instance per palette', () {
+     expect(identical(monoTheme(dark: false), monoTheme(dark: false)), isTrue);
+     expect(identical(monoTheme(dark: true), monoTheme(dark: true)), isTrue);
