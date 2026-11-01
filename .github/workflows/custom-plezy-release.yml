@@ -37,7 +37,7 @@ jobs:
       - name: Checkout custom branch
         uses: actions/checkout@v5
         with:
-          ref: ha-shuffle-v2
+          ref: main
           fetch-depth: 0
 
       # ═════════════════════════════════════
@@ -400,7 +400,7 @@ jobs:
             Plezy-Source.tar.gz \
             Plezy-Source.tar.gz.sha256 \
             --repo "$GITHUB_REPOSITORY" \
-            --target ha-shuffle-v2 \
+            --target main \
             --latest \
             --title "Plezy $UPSTREAM_TAG + HA Shuffle" \
             --notes-file /tmp/release-notes.md

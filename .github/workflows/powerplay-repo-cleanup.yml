@@ -3,7 +3,7 @@ run-name: Archive pre-PowerPlay releases and preserve rollback assets
 on:
   push:
     branches:
-      - ha-shuffle-v2
+      - main
     paths:
       - '.github/powerplay/archive-legacy.request.json'
   workflow_dispatch:

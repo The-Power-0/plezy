@@ -30,7 +30,7 @@ jobs:
       - name: Checkout maintained build logic
         uses: actions/checkout@v5
         with:
-          ref: ha-shuffle-v2
+          ref: main
           fetch-depth: 0
 
       - name: Resolve upstream version

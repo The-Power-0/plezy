@@ -5,7 +5,7 @@ run-name: Publish PowerPlay ${{ inputs.release_version || 'requested stable rele
 on:
   push:
     branches:
-      - ha-shuffle-v2
+      - main
     paths:
       - '.github/powerplay/publication-request.json'
   workflow_dispatch:

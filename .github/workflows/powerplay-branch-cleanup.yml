@@ -2,7 +2,7 @@ name: Archive obsolete PowerPlay branches
 on:
   push:
     branches:
-      - ha-shuffle-v2
+      - main
     paths:
       - '.github/powerplay/branch-cleanup.request.json'
   workflow_dispatch:
