@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   candidate:
+    if: github.event_name != 'push' || github.event.deleted != true
     runs-on: ubuntu-latest
     timeout-minutes: 110
     env:

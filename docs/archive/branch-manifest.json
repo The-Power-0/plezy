@@ -1,0 +1,211 @@
+{
+  "repository": "The-Power-0/PowerPlay",
+  "original_default_branch": "ha-shuffle-v2",
+  "target_default_branch": "main",
+  "latest_release": "powerplay-v1.1.1",
+  "branches": [
+    {
+      "name": "fix/firetv-candidate-certificate-parser",
+      "sha": "8d40fbfbc3935afdf8564f69f86d22db3bfe8183",
+      "protected": false,
+      "archive_tag": "archive/branches/fix/firetv-candidate-certificate-parser/8d40fbfb",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "fix/plezy-225-shuffle-gpl-sources",
+      "sha": "35273f76a9e4a9ce7de9098f2bdb3e38b239784e",
+      "protected": false,
+      "archive_tag": "archive/branches/fix/plezy-225-shuffle-gpl-sources/35273f76",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "fix/plezy-native-shuffle-guard",
+      "sha": "8aae65e62e9b06f9ebe50f9426cc9aa6f52c5034",
+      "protected": false,
+      "archive_tag": "archive/branches/fix/plezy-native-shuffle-guard/8aae65e6",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "ha-shuffle-v2",
+      "sha": "9ccd0606e822488f2135339e4cd5d4e6cd3039f1",
+      "protected": false,
+      "archive_tag": "archive/branches/ha-shuffle-v2/9ccd0606",
+      "disposition": "retain_until_main_is_default"
+    },
+    {
+      "name": "main",
+      "sha": "856b8a7876f20b78fe7b1b464552c5bba76f1bc5",
+      "protected": false,
+      "archive_tag": "archive/branches/main/856b8a78",
+      "disposition": "retain_and_fast_forward"
+    },
+    {
+      "name": "perf/firetv-candidate-build-v1",
+      "sha": "9fcd111e3b9cc495da6b4349509a459d2f1ee520",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-candidate-build-v1/9fcd111e",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-exoplayer-migration-audit",
+      "sha": "bf555b1e0996aacccd6a9eaa0c268c23cb268315",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-exoplayer-migration-audit/bf555b1e",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-exoplayer-video-v1",
+      "sha": "1f723127e15988fac2735b3b20649cf1fd258b02",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-exoplayer-video-v1/1f723127",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-no-mpv-movies-tv-v1",
+      "sha": "87c06199f63f61c370ae14965de4725b2b010cfd",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-no-mpv-movies-tv-v1/87c06199",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-01-external-services",
+      "sha": "dda84ac0f1d0e03315fdad9abedb1505f7df64ab",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-01-external-services/dda84ac0",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-02-no-discord",
+      "sha": "a230079f087144afa767f75dd84ffe33bb74f9af",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-02-no-discord/a230079f",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-03-no-watch-together",
+      "sha": "db73b3bd83587b7e5adb435f72cc3afb901b3630",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-03-no-watch-together/db73b3bd",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-04-no-plezy-remote",
+      "sha": "6db674b90a9732bb76281d4218e1ae64426dbecd",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-04-no-plezy-remote/6db674b9",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-05-library-index",
+      "sha": "b2619186a8ee7a9188136d1d9c6c012888b9f68e",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-05-library-index/b2619186",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-06-startup-priority",
+      "sha": "160dfa7da18c8f9ab3c5235c541b7e76a817d9f9",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-06-startup-priority/160dfa7d",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-07-focus-index",
+      "sha": "2e3bfc48ccfd5f5daa8ced7e2607a00fe4dbb82f",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-07-focus-index/2e3bfc48",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-08-no-music-restore",
+      "sha": "12147f9f71e08945bf278edd84b3d578eda2668d",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-08-no-music-restore/12147f9f",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-09-candidate-source-pin",
+      "sha": "faa1ab6320dd56805fef9a71f0eccd635ef3b5ae",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-09-candidate-source-pin/faa1ab63",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-10-artwork-priority",
+      "sha": "724b5c0eb5a86a5289caf1910c876d66e2bc5b7b",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-10-artwork-priority/724b5c0e",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-11-plex-request-coalescing",
+      "sha": "c556d5b851da2493f5d12c70679033f3b1a403c5",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-11-plex-request-coalescing/c556d5b8",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-12-media3-volume",
+      "sha": "0bcad3eeced18840400392f552a68625314ae1cb",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-12-media3-volume/0bcad3ee",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-13-memory-budget",
+      "sha": "1e6fd7217126b4ebfad3279a016c17d899236034",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-13-memory-budget/1e6fd721",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-optimization-14-asset-dependency-pruning",
+      "sha": "b89f663dde8c6703bd604a0fcd8f5866a9e02bd9",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-optimization-14-asset-dependency-pruning/b89f663d",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-plex-only-aot-v1",
+      "sha": "c007735f37c89f40324dc183edd7e278470d76d3",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-plex-only-aot-v1/c007735f",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "perf/firetv-validation-v1",
+      "sha": "0534d6ffb0ee35bbf58f18d007da59dbbfb96937",
+      "protected": false,
+      "archive_tag": "archive/branches/perf/firetv-validation-v1/0534d6ff",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "release/powerplay-v1.0.0-rc1",
+      "sha": "c43d33a957df6d1cf295bfae5e3c711d3d56b3d9",
+      "protected": false,
+      "archive_tag": "archive/branches/release/powerplay-v1.0.0-rc1/c43d33a9",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "release/powerplay-v1.1.0-rc1",
+      "sha": "f894471b0b61f3f5bb4a40d94548ac9bbf032b50",
+      "protected": false,
+      "archive_tag": "archive/branches/release/powerplay-v1.1.0-rc1/f894471b",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "release/powerplay-v1.1.1-rc1",
+      "sha": "580dba25b2bb695f53027502fd579a95d1a63a55",
+      "protected": false,
+      "archive_tag": "archive/branches/release/powerplay-v1.1.1-rc1/580dba25",
+      "disposition": "archive_and_remove_branch"
+    },
+    {
+      "name": "test/firetv-optimized-release-candidate",
+      "sha": "4ba52184f4d2d227e068ee689c9d42dd1f85c72c",
+      "protected": false,
+      "archive_tag": "archive/branches/test/firetv-optimized-release-candidate/4ba52184",
+      "disposition": "archive_and_remove_branch"
+    }
+  ]
+}

@@ -1,13 +1,8 @@
 name: CI - Sanity Checks
 
 on:
-  push:
-    branches:
-      - main
-  # Keep untrusted code on the read-only pull_request event. Never use pull_request_target here.
-  pull_request:
-    branches:
-      - main
+  # Legacy repository-root Plezy CI remains manual. PowerPlay builds and tests
+  # its exact frozen application source through powerplay-release-candidate.yml.
   workflow_dispatch:
     inputs:
       build_linux_packages:

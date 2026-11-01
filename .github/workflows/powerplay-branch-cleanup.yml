@@ -1,0 +1,25 @@
+name: Archive obsolete PowerPlay branches
+on:
+  push:
+    branches:
+      - ha-shuffle-v2
+    paths:
+      - '.github/powerplay/branch-cleanup.request.json'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: powerplay-branch-archive
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Preserve branch tips, remove obsolete names, and retain the active default
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/powerplay/archive_branches.py --apply
