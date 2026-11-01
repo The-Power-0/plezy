@@ -71,7 +71,7 @@ The current focus is **Fire OS 7 and 8**, ARMv7, Plex movies and TV, and Home As
 - Every stable PowerPlay publication is explicitly marked **Latest**. Candidate builds remain unpublished artifacts.
 - `.github/powerplay/release.json` records the next version, a monotonically increasing Android build number, and SHA-256 pins for the published baseline source.
 - The candidate workflow restores the exact published PowerPlay 1.0.0 source, applies the reviewed `.github/powerplay/next-version.patch`, and runs settings/default, import/export, and deep-link regression tests before compiling. It does not build from the legacy source at the repository root.
-- The publication workflow promotes that signed candidate without rebuilding and verifies GitHub's Latest pointer afterward.
+- The publication workflow promotes that signed candidate without rebuilding and verifies GitHub's Latest pointer afterward. Start it manually with Run workflow, or commit an explicit `.github/powerplay/publication-request.json` on `ha-shuffle-v2` containing `candidate_run_id`, `release_version`, and `confirm: PUBLISH_POWERPLAY`; both paths use the same provenance and checksum checks.
 
 ### Next batch: PowerPlay 1.1.0
 
