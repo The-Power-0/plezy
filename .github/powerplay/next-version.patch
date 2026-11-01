@@ -298,7 +298,7 @@
        await settings.write(SettingsService.skipIntroMode, SkipMarkerMode.off);
 --- /dev/null
 +++ b/test/services/powerplay_defaults_test.dart
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,59 @@
 +import 'package:flutter_test/flutter_test.dart';
 +import 'package:plezy/services/settings_service.dart';
 +
@@ -309,7 +309,7 @@
 +    resetSharedPreferencesForTest();
 +  });
 +
-+  test('PowerPlay defaults apply to a fresh store and after reset', () async {
++  test('PowerPlay defaults apply to a fresh store and honor the existing reset policy', () async {
 +    final settings = await SettingsService.getInstance();
 +    void expectDefaults() {
 +      expect(settings.read(SettingsService.continueWatchingAction), ContinueWatchingAction.details);
@@ -327,7 +327,13 @@
 +    await settings.write(SettingsService.skipIntroMode, SkipMarkerMode.button);
 +    await settings.write(SettingsService.autoSkipDelay, 5);
 +    await settings.resetAllSettings();
-+    expectDefaults();
++    expect(settings.read(SettingsService.continueWatchingAction), ContinueWatchingAction.details);
++    expect(settings.read(SettingsService.episodeAction), EpisodeAction.details);
++    expect(settings.read(SettingsService.matchContentFrameRate), isTrue);
++    // Intro mode and delay are portable-only preferences in the existing app;
++    // Reset All Settings deliberately preserves these saved choices.
++    expect(settings.read(SettingsService.skipIntroMode), SkipMarkerMode.button);
++    expect(settings.read(SettingsService.autoSkipDelay), 5);
 +  });
 +
 +  test('upgrading preserves every explicitly saved choice', () async {

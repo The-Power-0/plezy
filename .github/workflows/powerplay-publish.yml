@@ -110,7 +110,7 @@ jobs:
           - Skip Intro defaults to **Automatic**, with an auto-skip delay of **3 seconds**.
           - PowerPlay branding on both the Android launch screen and Flutter startup screen, including adaptive icons.
           - Updated About screen with PowerPlay identity, version, project URL, and Plezy/GPL attribution.
-          - Existing saved settings are preserved. New defaults apply to unset settings and after resetting settings.
+          - Existing saved settings are preserved. New defaults apply to unset settings; the existing Reset All Settings policy is preserved.
           - Stable PowerPlay releases are explicitly marked **Latest**. Individual feature releases increment the patch version; full batches increment the minor version and reset the patch to zero.
 
           Application ID: \`com.power.powerplay\`. Deep links: \`powerplay://\`. Playback: ExoPlayer/Media3; ARMv7 Fire TV APK with the tested Fire TV optimizations retained.

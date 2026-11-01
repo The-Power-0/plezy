@@ -75,4 +75,4 @@ The current focus is **Fire OS 7 and 8**, ARMv7, Plex movies and TV, and Home As
 
 ### Next batch: PowerPlay 1.1.0
 
-Continue Watching and Episode Action default to Open Details; Match Content Frame Rate defaults on; Skip Intro defaults to Automatic with a 3-second delay. Both startup screens and the About page use PowerPlay branding. Existing saved settings remain authoritative; the defaults apply to unset preferences and after resetting settings. Skip Credits keeps its existing default.
+Continue Watching and Episode Action default to Open Details; Match Content Frame Rate defaults on; Skip Intro defaults to Automatic with a 3-second delay. Both startup screens and the About page use PowerPlay branding. Existing saved settings remain authoritative; the defaults apply to unset preferences. The existing Reset All Settings policy is preserved, including saved intro mode and delay. Skip Credits keeps its existing default.
