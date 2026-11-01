@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plezy/theme/mono_theme.dart';
+import 'package:plezy/theme/powerplay_palette.dart';
 
 /// `monoTheme` builds a full `ColorScheme`, an applied+copyWith'd Typography
 /// `TextTheme`, ~14 sub-theme objects, and then clones the whole `ThemeData`
@@ -11,6 +12,23 @@ import 'package:plezy/theme/mono_theme.dart';
 /// two properties that make that safe: stable identity per palette, and a cache
 /// key that includes every input the builder actually reads.
 void main() {
+  test('every curated palette supports dark, light, and OLED independently', () {
+    final colors = <Color>{};
+    for (final palette in PowerPlayPalette.values) {
+      final light = monoTheme(dark: false, palette: palette);
+      final dark = monoTheme(dark: true, palette: palette);
+      final oled = monoTheme(dark: true, oled: true, palette: palette);
+      expect(light.brightness, Brightness.light);
+      expect(dark.brightness, Brightness.dark);
+      expect(oled.scaffoldBackgroundColor, const Color(0xFF000000));
+      expect(identical(light, dark), isFalse);
+      expect(identical(dark, oled), isFalse);
+      expect(identical(oled, monoTheme(dark: false, oled: true, palette: palette)), isTrue);
+      expect(identical(oled, monoTheme(dark: true, oled: true, palette: palette)), isTrue);
+      expect(colors.add(dark.colorScheme.primary), isTrue, reason: 'Duplicate theme accent: ${palette.name}');
+    }
+  });
+
   test('repeated calls return the identical instance per palette', () {
     expect(identical(monoTheme(dark: false), monoTheme(dark: false)), isTrue);
     expect(identical(monoTheme(dark: true), monoTheme(dark: true)), isTrue);
